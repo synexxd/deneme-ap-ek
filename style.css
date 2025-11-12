@@ -9,38 +9,35 @@
 body {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     padding: 20px;
 }
 
 .container {
-    width: 100%;
-    max-width: 500px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
     color: white;
 }
 
 header h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
     margin-bottom: 10px;
     text-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 
 header p {
-    font-size: 1rem;
+    font-size: 1.1rem;
     opacity: 0.9;
 }
 
 .api-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 30px;
 }
 
 .api-card {
@@ -62,12 +59,19 @@ header p {
 }
 
 .method-badge {
-    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     padding: 6px 12px;
     border-radius: 20px;
     font-weight: bold;
     font-size: 14px;
+}
+
+.method-badge.post {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.method-badge.get {
+    background: linear-gradient(135deg, #48bb78, #38a169);
 }
 
 .api-title {
@@ -188,7 +192,11 @@ header p {
     display: none;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+    .api-cards {
+        grid-template-columns: 1fr;
+    }
+    
     .api-card {
         padding: 20px;
     }
