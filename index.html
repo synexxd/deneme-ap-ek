@@ -123,6 +123,58 @@
                     <span class="success-message" id="successDeprem">Kopyalandı!</span>
                 </div>
             </div>
+
+            <!-- 3. API Kartı: Captcha -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge post">POST</div>
+                    <div class="api-title">Captcha</div>
+                </div>
+
+                <div class="endpoint">/api/captcha</div>
+
+                <div class="description">
+                    Resimli CAPTCHA oluşturma ve doğrulama
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Parameter:</div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">text</div>
+                        <div class="param-desc">CAPTCHA metni (opsiyonel)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">width</div>
+                        <div class="param-desc">Resim genişliği (default: 200)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">height</div>
+                        <div class="param-desc">Resim yüksekliği (default: 80)</div>
+                    </div>
+                </div>
+
+                <div class="response">
+                    <div class="section-title">Dönüş:</div>
+                    <div class="response-code">{
+  "status": "success",
+  "endpoint": "/api/captcha",
+  "captchaId": "captcha_abc123",
+  "imageUrl": "data:image/png;base64,...",
+  "text": "A3B8C2"
+}</div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button class="copy-btn" onclick="copyToClipboard('captcha')">
+                        Kopyala
+                    </button>
+                    <span class="success-message" id="successCaptcha">Kopyalandı!</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -138,7 +190,7 @@
     }
   ]
 }`;
-            } else {
+            } else if (type === 'deprem') {
                 responseCode = `{
   "status": "success",
   "endpoint": "/api/deprem", 
@@ -160,6 +212,14 @@
       "source": "AFAD"
     }
   ]
+}`;
+            } else if (type === 'captcha') {
+                responseCode = `{
+  "status": "success",
+  "endpoint": "/api/captcha",
+  "captchaId": "captcha_abc123",
+  "imageUrl": "data:image/png;base64,...",
+  "text": "A3B8C2"
 }`;
             }
             
