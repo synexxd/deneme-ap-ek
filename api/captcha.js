@@ -1,5 +1,5 @@
-// api/captcha.js
-import { createCanvas } from 'canvas';
+// api/captcha.js - Canvas olmadan HTML ile CAPTCHA
+import nodeHtmlToImage from 'node-html-to-image';
 
 // CAPTCHA storage
 const captchaStore = new Map();
@@ -58,87 +58,186 @@ async function generateCaptcha(req, res) {
   const captchaText = text || generateRandomText(6);
   const captchaId = 'captcha_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-  // CAPTCHA resmi oluştur
-  const canvas = createCanvas(parseInt(width), parseInt(height));
-  const ctx = canvas.getContext('2d');
+  try {
+    // HTML ile CAPTCHA resmi oluştur
+    const imageBuffer = await generateCaptchaImage(captchaText, parseInt(width), parseInt(height));
+    const base64Image = imageBuffer.toString('base64');
+    const imageUrl = `data:image/png;base64,${base64Image}`;
 
-  // Arkaplan
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Store CAPTCHA
+    captchaStore.set(captchaId, {
+      text: captchaText,
+      createdAt: Date.now(),
+      verified: false
+    });
 
-  // Gürültü çizgileri
-  for (let i = 0; i < 8; i++) {
-    ctx.strokeStyle = `rgba(${Math.random() * 100}, ${Math.random() * 100}, ${Math.random() * 100}, 0.3)`;
-    ctx.beginPath();
-    ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-    ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
-    ctx.stroke();
-  }
+    // 10 dakika sonra temizle
+    setTimeout(() => {
+      captchaStore.delete(captchaId);
+    }, 10 * 60 * 1000);
 
-  // Gürültü noktaları
-  for (let i = 0; i < 50; i++) {
-    ctx.fillStyle = `rgba(${Math.random() * 100}, ${Math.random() * 100}, ${Math.random() * 100}, 0.2)`;
-    ctx.beginPath();
-    ctx.arc(
-      Math.random() * canvas.width,
-      Math.random() * canvas.height,
-      Math.random() * 2,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-  }
+    const response = {
+      status: 'success',
+      endpoint: '/api/captcha',
+      method: req.method,
+      captchaId: captchaId,
+      imageUrl: imageUrl,
+      text: captchaText,
+      expiresIn: '10 minutes'
+    };
 
-  // Metin
-  ctx.font = 'bold 28px Arial';
-  ctx.fillStyle = '#2c3e50';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+    res.json(response);
 
-  // Metin distort etme
-  const textWidth = ctx.measureText(captchaText).width;
-  const startX = (canvas.width - textWidth) / 2;
-
-  for (let i = 0; i < captchaText.length; i++) {
-    const char = captchaText[i];
-    const x = startX + (i * textWidth / captchaText.length) + (Math.random() * 8 - 4);
-    const y = canvas.height / 2 + (Math.random() * 6 - 3);
+  } catch (error) {
+    // Fallback: Base64 placeholder image
+    const fallbackImage = await generateFallbackCaptcha(captchaText);
     
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate((Math.random() * 0.4 - 0.2));
-    ctx.fillText(char, 0, 0);
-    ctx.restore();
+    captchaStore.set(captchaId, {
+      text: captchaText,
+      createdAt: Date.now(),
+      verified: false
+    });
+
+    const response = {
+      status: 'success',
+      endpoint: '/api/captcha',
+      method: req.method,
+      captchaId: captchaId,
+      imageUrl: fallbackImage,
+      text: captchaText,
+      expiresIn: '10 minutes',
+      note: 'Fallback image used'
+    };
+
+    res.json(response);
   }
+}
 
-  // Base64 image
-  const imageBuffer = canvas.toBuffer('image/png');
-  const base64Image = imageBuffer.toString('base64');
-  const imageUrl = `data:image/png;base64,${base64Image}`;
+// HTML ile CAPTCHA resmi oluştur
+async function generateCaptchaImage(text, width, height) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                width: ${width}px;
+                height: ${height}px;
+                background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: Arial, sans-serif;
+                position: relative;
+                overflow: hidden;
+            }
+            .captcha-text {
+                font-size: 28px;
+                font-weight: bold;
+                color: #2c3e50;
+                letter-spacing: 2px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+                transform: skew(-5deg) rotate(-2deg);
+                background: rgba(255,255,255,0.3);
+                padding: 10px 15px;
+                border-radius: 8px;
+            }
+            .noise {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+            }
+            .noise-line {
+                position: absolute;
+                background: rgba(0,0,0,0.1);
+                transform-origin: center;
+            }
+            .noise-dot {
+                position: absolute;
+                background: rgba(0,0,0,0.05);
+                border-radius: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="noise" id="noise"></div>
+        <div class="captcha-text">${text}</div>
+        <script>
+            // Gürültü çizgileri ekle
+            const noise = document.getElementById('noise');
+            for (let i = 0; i < 8; i++) {
+                const line = document.createElement('div');
+                line.className = 'noise-line';
+                line.style.width = Math.random() * 100 + 50 + 'px';
+                line.style.height = '1px';
+                line.style.top = Math.random() * 100 + '%';
+                line.style.left = Math.random() * 100 + '%';
+                line.style.transform = 'rotate(' + (Math.random() * 180) + 'deg)';
+                noise.appendChild(line);
+            }
+            
+            // Gürültü noktaları ekle
+            for (let i = 0; i < 30; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'noise-dot';
+                dot.style.width = Math.random() * 3 + 1 + 'px';
+                dot.style.height = dot.style.width;
+                dot.style.top = Math.random() * 100 + '%';
+                dot.style.left = Math.random() * 100 + '%';
+                noise.appendChild(dot);
+            }
+        </script>
+    </body>
+    </html>
+  `;
 
-  // Store CAPTCHA
-  captchaStore.set(captchaId, {
-    text: captchaText,
-    createdAt: Date.now(),
-    verified: false
+  const image = await nodeHtmlToImage({
+    html: html,
+    type: 'png',
+    quality: 100,
+    transparent: false,
+    puppeteerArgs: {
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    }
   });
 
-  // 10 dakika sonra temizle
-  setTimeout(() => {
-    captchaStore.delete(captchaId);
-  }, 10 * 60 * 1000);
+  return image;
+}
 
-  const response = {
-    status: 'success',
-    endpoint: '/api/captcha',
-    method: req.method,
-    captchaId: captchaId,
-    imageUrl: imageUrl,
-    text: captchaText,
-    expiresIn: '10 minutes'
-  };
+// Fallback CAPTCHA (SVG base64)
+async function generateFallbackCaptcha(text) {
+  // Basit bir SVG CAPTCHA
+  const svg = `
+    <svg width="200" height="80" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f0f0f0"/>
+          <stop offset="100%" stop-color="#e0e0e0"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bg)"/>
+      ${Array.from({length: 8}, (_, i) => 
+        `<line x1="${Math.random() * 200}" y1="${Math.random() * 80}" 
+               x2="${Math.random() * 200}" y2="${Math.random() * 80}" 
+               stroke="rgba(0,0,0,0.1)" stroke-width="1"/>`
+      ).join('')}
+      ${Array.from({length: 20}, (_, i) =>
+        `<circle cx="${Math.random() * 200}" cy="${Math.random() * 80}" 
+                r="${Math.random() * 2}" fill="rgba(0,0,0,0.05)"/>`
+      ).join('')}
+      <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="24" 
+            font-weight="bold" fill="#2c3e50" transform="skewX(-5)">
+        ${text}
+      </text>
+    </svg>
+  `;
 
-  res.json(response);
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
 // CAPTCHA doğrula (GET ve POST)
