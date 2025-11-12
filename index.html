@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI - Anime API</title>
+    <title>SynexAPI - API Servisleri</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🎌 SynexAPI Anime</h1>
-            <p>Waifu.pics API ile otomatik anime resimleri</p>
+            <h1>🚀 SynexAPI</h1>
+            <p>Çeşitli API servisleri</p>
         </header>
 
         <div class="api-cards">
+            <!-- 1. API Kartı: Anime -->
             <div class="api-card">
                 <div class="api-header">
                     <div class="method-badge post">POST</div>
@@ -43,10 +44,10 @@
                 <div class="response">
                     <div class="section-title">Dönüş:</div>
                     <div class="response-code">{
-  "endpoint": "api/anime",
+  "endpoint": "/api/anime",
   "images": [
     {
-      "imageUrl": "https://i.waifu.pics/"
+      "imageUrl": "https://i.waifu.pics/..."
     }
   ]
 }</div>
@@ -54,21 +55,78 @@
 
                 <div class="api-footer">
                     <div class="date">08.02.2025</div>
-                    <button class="copy-btn" onclick="copyToClipboard()">
+                    <button class="copy-btn" onclick="copyToClipboard('anime')">
                         Kopyala
                     </button>
-                    <span class="success-message" id="successMessage">Kopyalandı!</span>
+                    <span class="success-message" id="successAnime">Kopyalandı!</span>
+                </div>
+            </div>
+
+            <!-- 2. API Kartı: Deprem -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge get">GET</div>
+                    <div class="api-title">Deprem</div>
+                </div>
+
+                <div class="endpoint">/api/deprem</div>
+
+                <div class="description">
+                    Son deprem verilerini getirir
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Parameter:</div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">city</div>
+                        <div class="param-desc">Şehir filtresi</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">amount</div>
+                        <div class="param-desc">Kayıt sayısı</div>
+                    </div>
+                </div>
+
+                <div class="response">
+                    <div class="section-title">Dönüş:</div>
+                    <div class="response-code">{
+  "endpoint": "/api/deprem",
+  "earthquakes": [
+    {
+      "id": 1,
+      "location": "İstanbul",
+      "magnitude": 4.5,
+      "depth": 8.2,
+      "date": "2024-01-15 14:30:00"
+    }
+  ]
+}</div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button class="copy-btn" onclick="copyToClipboard('deprem')">
+                        Kopyala
+                    </button>
+                    <span class="success-message" id="successDeprem">Kopyalandı!</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        function copyToClipboard() {
-            const responseCode = document.querySelector('.response-code').textContent;
+        function copyToClipboard(type) {
+            let responseCode;
+            if (type === 'anime') {
+                responseCode = document.querySelectorAll('.response-code')[0].textContent;
+            } else {
+                responseCode = document.querySelectorAll('.response-code')[1].textContent;
+            }
             
             navigator.clipboard.writeText(responseCode).then(() => {
-                const successMessage = document.getElementById('successMessage');
+                const successMessage = document.getElementById(`success${type.charAt(0).toUpperCase() + type.slice(1)}`);
                 successMessage.style.display = 'inline';
                 
                 setTimeout(() => {
