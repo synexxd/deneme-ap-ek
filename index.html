@@ -127,43 +127,73 @@
             <!-- 3. API Kartı: Captcha -->
             <div class="api-card">
                 <div class="api-header">
-                    <div class="method-badge post">POST</div>
+                    <div class="method-badge get-post">GET/POST</div>
                     <div class="api-title">Captcha</div>
                 </div>
 
                 <div class="endpoint">/api/captcha</div>
 
                 <div class="description">
-                    Resimli CAPTCHA oluşturma ve doğrulama
+                    XXXX-XXXX-XXXX formatında doğrulama kodu oluşturma
                 </div>
 
                 <div class="parameters">
-                    <div class="section-title">Parameter:</div>
+                    <div class="section-title">Generate Parameters:</div>
                     <div class="parameter">
-                        <div class="checkbox"></div>
-                        <div class="param-name">text</div>
-                        <div class="param-desc">CAPTCHA metni (opsiyonel)</div>
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">(none)</div>
+                        <div class="param-desc">Parametre gerekmez</div>
+                    </div>
+                    
+                    <div class="section-title" style="margin-top: 15px;">Verify Parameters:</div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">id</div>
+                        <div class="param-desc">CAPTCHA ID'si</div>
                     </div>
                     <div class="parameter">
                         <div class="checkbox checked">✓</div>
-                        <div class="param-name">width</div>
-                        <div class="param-desc">Resim genişliği (default: 200)</div>
+                        <div class="param-name">code</div>
+                        <div class="param-desc">Doğrulama kodu (XXXX-XXXX-XXXX)</div>
                     </div>
-                    <div class="parameter">
-                        <div class="checkbox checked">✓</div>
-                        <div class="param-name">height</div>
-                        <div class="param-desc">Resim yüksekliği (default: 80)</div>
+                </div>
+
+                <div class="methods">
+                    <div class="section-title">HTTP Methods:</div>
+                    <div class="method-examples">
+                        <div class="method-example">
+                            <strong>GET Generate:</strong>
+                            <code>/api/captcha</code>
+                        </div>
+                        <div class="method-example">
+                            <strong>GET Verify:</strong>
+                            <code>/api/captcha?action=verify&amp;id=cap_abc123&amp;code=AB12-CD34-EF56</code>
+                        </div>
+                        <div class="method-example">
+                            <strong>POST Generate:</strong>
+                            <code>{ }</code>
+                        </div>
+                        <div class="method-example">
+                            <strong>POST Verify:</strong>
+                            <code>{ "action": "verify", "id": "cap_abc123", "code": "AB12-CD34-EF56" }</code>
+                        </div>
                     </div>
                 </div>
 
                 <div class="response">
-                    <div class="section-title">Dönüş:</div>
+                    <div class="section-title">Generate Response:</div>
                     <div class="response-code">{
   "status": "success",
-  "endpoint": "/api/captcha",
-  "captchaId": "captcha_abc123",
-  "imageUrl": "data:image/png;base64,...",
-  "text": "A3B8C2"
+  "id": "cap_1a2b3c4d",
+  "code": "A3B8-C2D9-E4F7",
+  "expiresIn": "10 minutes"
+}</div>
+
+                    <div class="section-title" style="margin-top: 15px;">Verify Response:</div>
+                    <div class="response-code">{
+  "status": "success",
+  "message": "CAPTCHA verified successfully",
+  "verified": true
 }</div>
                 </div>
 
@@ -214,12 +244,25 @@
   ]
 }`;
             } else if (type === 'captcha') {
-                responseCode = `{
+                responseCode = `// Generate CAPTCHA Code
+GET /api/captcha
+
+// Response:
+{
   "status": "success",
-  "endpoint": "/api/captcha",
-  "captchaId": "captcha_abc123",
-  "imageUrl": "data:image/png;base64,...",
-  "text": "A3B8C2"
+  "id": "cap_1a2b3c4d",
+  "code": "A3B8-C2D9-E4F7",
+  "expiresIn": "10 minutes"
+}
+
+// Verify CAPTCHA Code
+GET /api/captcha?action=verify&id=cap_1a2b3c4d&code=A3B8-C2D9-E4F7
+
+// Response:
+{
+  "status": "success",
+  "message": "CAPTCHA verified successfully",
+  "verified": true
 }`;
             }
             
