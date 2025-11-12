@@ -3,82 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI</title>
+    <title>SynexAPI - Anime API</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1> SynexAPI Anime</h1>
-            <p>Waifu.pics API ile otomatik anime resimleri - GET & POST destekli</p>
+            <h1>🎌 SynexAPI Anime</h1>
+            <p>Waifu.pics API ile otomatik anime resimleri</p>
         </header>
 
         <div class="api-cards">
-            <!-- Anime API Kartı -->
             <div class="api-card">
                 <div class="api-header">
-                <div class="api-title">Anime</div>
+                    <div class="method-badge post">POST</div>
+                    <div class="api-title">Anime</div>
                 </div>
 
-                <div class="endpoint">/api/anime</div>
+                <div class="endpoint">/anime</div>
 
                 <div class="description">
-                      Birsürü Anime
+                    Anime kızı evinde istermisin?
                 </div>
 
                 <div class="parameters">
-                    <div class="section-title">Parameters:</div>
+                    <div class="section-title">Parameter:</div>
                     <div class="parameter">
-                        <span class="param-name">tag</span>
-                        <span class="param-desc">(opsiyonel) waifu, neko, shinobu, megumin, husbando</span>
+                        <div class="checkbox"></div>
+                        <div class="param-name">tag</div>
+                        <div class="param-desc">Anime etiketi</div>
                     </div>
                     <div class="parameter">
-                        <span class="param-name">amount</span>
-                        <span class="param-desc">(opsiyonel) resim sayısı (default: 1, max: 10)</span>
-                    </div>
-                </div>
-
-                <div class="methods">
-                    <div class="section-title">HTTP Methods:</div>
-                    <div class="method-examples">
-                        <div class="method-example">
-                            <strong>GET:</strong>
-                            <code>/api/anime?tag=neko&amount=3</code>
-                        </div>
-                        <div class="method-example">
-                            <strong>POST:</strong>
-                            <code>{ "tag": "waifu", "amount": 2 }</code>
-                        </div>
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">amount</div>
+                        <div class="param-desc">Resim miktarı</div>
                     </div>
                 </div>
 
                 <div class="response">
-                    <div class="section-title">Response:</div>
-                    <pre>{
-  "status": "success",
-  "endpoint": "/api/anime",
+                    <div class="section-title">Dönüş:</div>
+                    <div class="response-code">{
+  "endpoint": "/anime",
   "images": [
     {
-      "imageUrl": "https://deneme-ap-ek.vercel.app/api/anime",
-      "id": 1,
-      "tag": "waifu"
+      "imageUrl": "https://i.waifu.pics/..."
     }
   ]
-}</pre>
+}</div>
                 </div>
-
-            
 
                 <div class="api-footer">
                     <div class="date">08.02.2025</div>
-                    <button onclick="copyCode()" class="copy-btn">
-                        📋 Kopyala
+                    <button class="copy-btn" onclick="copyToClipboard()">
+                        Kopyala
                     </button>
+                    <span class="success-message" id="successMessage">Kopyalandı!</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script>
+        function copyToClipboard() {
+            const responseCode = document.querySelector('.response-code').textContent;
+            
+            navigator.clipboard.writeText(responseCode).then(() => {
+                const successMessage = document.getElementById('successMessage');
+                successMessage.style.display = 'inline';
+                
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 2000);
+            });
+        }
+
+        // Checkbox animasyonu
+        document.querySelectorAll('.parameter').forEach(item => {
+            item.addEventListener('click', function() {
+                const checkbox = this.querySelector('.checkbox');
+                checkbox.classList.toggle('checked');
+                
+                if (checkbox.classList.contains('checked')) {
+                    checkbox.innerHTML = '✓';
+                } else {
+                    checkbox.innerHTML = '';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
