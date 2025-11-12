@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SynexAPI - Kullanıcılar</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👥 SynexAPI Kullanıcıları</h1>
+            <p>API üzerinden gelen kullanıcı verileri</p>
+        </header>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-users">0</div>
+                <div class="stat-label">Toplam Kullanıcı</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-age">0</div>
+                <div class="stat-label">Ortalama Yaş</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="refreshBtn" class="btn">🔄 Yenile</button>
+            <input type="text" id="searchInput" placeholder="🔍 Kullanıcı ara...">
+        </div>
+
+        <div class="users-grid" id="users-grid">
+            <!-- Kullanıcı kartları buraya gelecek -->
+        </div>
+
+        <div class="loading" id="loading">
+            📥 Veriler yükleniyor...
+        </div>
+
+        <div class="error" id="error" style="display: none;">
+            ❌ Hata: <span id="error-message"></span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
