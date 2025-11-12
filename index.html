@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI - Anime API</title>
+    <title>SynexAPI</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🎌 SynexAPI Anime</h1>
+            <h1> SynexAPI Anime</h1>
             <p>Waifu.pics API ile otomatik anime resimleri - GET & POST destekli</p>
         </header>
 
@@ -17,14 +17,13 @@
             <!-- Anime API Kartı -->
             <div class="api-card">
                 <div class="api-header">
-                    <div class="method-badge get">GET/POST</div>
-                    <div class="api-title">Anime</div>
+                <div class="api-title">Anime</div>
                 </div>
 
                 <div class="endpoint">/api/anime</div>
 
                 <div class="description">
-                    Waifu.pics API'den otomatik anime resimleri - GET ve POST methodları desteklenir
+                      Birsürü Anime
                 </div>
 
                 <div class="parameters">
@@ -58,10 +57,9 @@
                     <pre>{
   "status": "success",
   "endpoint": "/api/anime",
-  "method": "GET",
   "images": [
     {
-      "imageUrl": "https://i.waifu.pics/...",
+      "imageUrl": "https://deneme-ap-ek.vercel.app/api/anime",
       "id": 1,
       "tag": "waifu"
     }
@@ -69,27 +67,7 @@
 }</pre>
                 </div>
 
-                <div class="demo-section">
-                    <div class="section-title">Demo:</div>
-                    <div class="demo-controls">
-                        <select id="demoTag" class="demo-input">
-                            <option value="waifu">waifu</option>
-                            <option value="neko">neko</option>
-                            <option value="shinobu">shinobu</option>
-                            <option value="megumin">megumin</option>
-                            <option value="husbando">husbando</option>
-                        </select>
-                        <input type="number" id="demoAmount" class="demo-input" value="2" min="1" max="10">
-                        <select id="demoMethod" class="demo-input">
-                            <option value="GET">GET</option>
-                            <option value="POST">POST</option>
-                        </select>
-                        <button onclick="testAnimeAPI()" class="test-btn">
-                            🎌 API'yi Test Et
-                        </button>
-                    </div>
-                    <div id="demoResults"></div>
-                </div>
+            
 
                 <div class="api-footer">
                     <div class="date">08.02.2025</div>
