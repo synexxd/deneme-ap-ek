@@ -1,0 +1,32 @@
+{
+    "status": "success",
+    "data": [
+        {
+            "id": 1,
+            "name": "Ahmet Yılmaz",
+            "email": "ahmet@synexapi.com",
+            "age": 28,
+            "createdAt": "2024-01-15T10:30:00Z"
+        },
+        {
+            "id": 2,
+            "name": "Ayşe Demir",
+            "email": "ayse@synexapi.com",
+            "age": 32,
+            "createdAt": "2024-01-14T15:45:00Z"
+        },
+        {
+            "id": 3,
+            "name": "Mehmet Kaya",
+            "email": "mehmet@synexapi.com",
+            "age": 25,
+            "createdAt": "2024-01-13T09:20:00Z"
+        },
+        {
+            "id": 4,
+            "name": "Zeynep Şahin",
+            "email": "zeynep@synexapi.com",
+            "createdAt": "2024-01-12T14:10:00Z"
+        }
+    ]
+}
