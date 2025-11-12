@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SynexAPI - Anime API</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎌 SynexAPI Anime</h1>
+            <p>Waifu.pics API ile otomatik anime resimleri</p>
+        </header>
+
+        <div class="api-cards">
+            <!-- Anime API Kartı -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge post">POST</div>
+                    <div class="api-title">Anime</div>
+                </div>
+
+                <div class="endpoint">/api/anime</div>
+
+                <div class="description">
+                    Waifu.pics API'den otomatik anime resimleri
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Parameters:</div>
+                    <div class="parameter">
+                        <span class="param-name">tag</span>
+                        <span class="param-desc">(opsiyonel) waifu, neko, shinobu, megumin</span>
+                    </div>
+                    <div class="parameter">
+                        <span class="param-name">amount</span>
+                        <span class="param-desc">(opsiyonel) resim sayısı (default: 1)</span>
+                    </div>
+                </div>
+
+                <div class="response">
+                    <div class="section-title">Response:</div>
+                    <pre>{
+  "status": "success",
+  "endpoint": "/api/anime", 
+  "images": [
+    {
+      "imageUrl": "https://i.waifu.pics/...",
+      "id": 1,
+      "tag": "waifu"
+    }
+  ]
+}</pre>
+                </div>
+
+                <div class="demo-section">
+                    <div class="section-title">Demo:</div>
+                    <button onclick="testAnimeAPI()" class="test-btn">
+                        🎌 API'yi Test Et
+                    </button>
+                    <div id="demoResults"></div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button onclick="copyCode()" class="copy-btn">
+                        📋 Kopyala
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
