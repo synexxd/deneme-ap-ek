@@ -72,7 +72,7 @@
                 <div class="endpoint">/api/deprem</div>
 
                 <div class="description">
-                    Son deprem verilerini getirir
+                    Kandilli Rasathanesi'nden gerçek zamanlı deprem verileri
                 </div>
 
                 <div class="parameters">
@@ -80,26 +80,34 @@
                     <div class="parameter">
                         <div class="checkbox"></div>
                         <div class="param-name">city</div>
-                        <div class="param-desc">Şehir filtresi</div>
+                        <div class="param-desc">Şehir filtresi (istanbul, izmir, van, vb.)</div>
                     </div>
                     <div class="parameter">
                         <div class="checkbox checked">✓</div>
                         <div class="param-name">amount</div>
-                        <div class="param-desc">Kayıt sayısı</div>
+                        <div class="param-desc">Kayıt sayısı (default: 100, max: 500)</div>
                     </div>
                 </div>
 
                 <div class="response">
                     <div class="section-title">Dönüş:</div>
                     <div class="response-code">{
+  "status": "success",
   "endpoint": "/api/deprem",
+  "method": "GET",
+  "total": 5,
   "earthquakes": [
     {
       "id": 1,
-      "location": "İstanbul",
+      "date": "2024.01.15 14:30:00",
+      "location": "MARMARA DENIZI",
       "magnitude": 4.5,
       "depth": 8.2,
-      "date": "2024-01-15 14:30:00"
+      "coordinates": {
+        "latitude": 40.9789,
+        "longitude": 28.8301
+      },
+      "timestamp": "2024-01-15T14:30:00.000Z"
     }
   ]
 }</div>
@@ -120,9 +128,35 @@
         function copyToClipboard(type) {
             let responseCode;
             if (type === 'anime') {
-                responseCode = document.querySelectorAll('.response-code')[0].textContent;
+                responseCode = `{
+  "endpoint": "/api/anime",
+  "images": [
+    {
+      "imageUrl": "https://i.waifu.pics/..."
+    }
+  ]
+}`;
             } else {
-                responseCode = document.querySelectorAll('.response-code')[1].textContent;
+                responseCode = `{
+  "status": "success",
+  "endpoint": "/api/deprem", 
+  "method": "GET",
+  "total": 5,
+  "earthquakes": [
+    {
+      "id": 1,
+      "date": "2024.01.15 14:30:00",
+      "location": "MARMARA DENIZI",
+      "magnitude": 4.5,
+      "depth": 8.2,
+      "coordinates": {
+        "latitude": 40.9789,
+        "longitude": 28.8301
+      },
+      "timestamp": "2024-01-15T14:30:00.000Z"
+    }
+  ]
+}`;
             }
             
             navigator.clipboard.writeText(responseCode).then(() => {
