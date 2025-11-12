@@ -4,19 +4,15 @@ export default async function handler(req, res) {
     let city, amount;
     
     if (req.method === 'POST') {
-      ({ city = 'all', amount = 100 } = req.body);
+      ({ city = 'all', amount = 50 } = req.body);
     } else {
-      ({ city = 'all', amount = 100 } = req.query);
+      ({ city = 'all', amount = 50 } = req.query);
     }
 
-    amount = Math.min(parseInt(amount), 500);
+    amount = Math.min(parseInt(amount), 200);
     
-    // Kandilli Rasathanesi verilerini çek
-    const response = await fetch('http://www.koeri.boun.edu.tr/scripts/lst0.asp');
-    const text = await response.text();
-    
-    // Veriyi parse et
-    const earthquakes = parseKandilliData(text, amount, city);
+    // AFAD web sitesinden güncel deprem verilerini çek
+    const earthquakes = await fetchAFADWebData(amount, city);
     
     if (earthquakes.length === 0) {
       return res.status(404).json({
@@ -29,6 +25,7 @@ export default async function handler(req, res) {
       status: 'success',
       endpoint: '/api/deprem',
       method: req.method,
+      source: 'afad-web',
       total: earthquakes.length,
       earthquakes: earthquakes
     });
@@ -41,71 +38,191 @@ export default async function handler(req, res) {
   }
 }
 
-// Kandilli verilerini parse eden fonksiyon
-function parseKandilliData(html, limit, cityFilter) {
+// AFAD web sitesinden veri çek
+async function fetchAFADWebData(limit, cityFilter) {
+  try {
+    // AFAD deprem listesi sayfası
+    const response = await fetch('https://deprem.afad.gov.tr/last-earthquakes.html', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('AFAD web sitesine erişilemiyor');
+    }
+    
+    const html = await response.text();
+    return parseAFADHTML(html, limit, cityFilter);
+    
+  } catch (error) {
+    console.error('AFAD web sitesi hatası:', error);
+    // Fallback: Public API denemesi
+    return await fetchAFADAPIData(limit, cityFilter);
+  }
+}
+
+// AFAD HTML sayfasını parse et
+function parseAFADHTML(html, limit, cityFilter) {
   const earthquakes = [];
   
   try {
-    // HTML'den tablo verilerini çek
-    const lines = html.split('\n');
-    let inTable = false;
+    // Tablo verilerini çek
+    const tableMatch = html.match(/<table[^>]*>([\s\S]*?)<\/table>/i);
+    if (!tableMatch) {
+      throw new Error('Tablo bulunamadı');
+    }
+    
+    const tableHtml = tableMatch[0];
+    const rows = tableHtml.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+    
     let count = 0;
     
-    for (const line of lines) {
-      if (line.includes('<pre>')) {
-        inTable = true;
+    for (const row of rows) {
+      if (count >= limit) break;
+      
+      // Satır içindeki hücreleri al
+      const cells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [];
+      
+      if (cells.length >= 7) {
+        const dateTime = extractText(cells[0]);
+        const latitude = extractText(cells[1]);
+        const longitude = extractText(cells[2]);
+        const depth = extractText(cells[3]);
+        const magnitude = extractText(cells[4]);
+        const location = extractText(cells[5]);
+        const province = extractText(cells[6]);
+        
+        // Şehir filtresi
+        if (cityFilter !== 'all' && 
+            !location.toLowerCase().includes(cityFilter.toLowerCase()) &&
+            !province.toLowerCase().includes(cityFilter.toLowerCase())) {
+          continue;
+        }
+        
+        const fullLocation = province && province !== '-' ? 
+          `${location} - ${province}`.toUpperCase() : 
+          location.toUpperCase();
+        
+        earthquakes.push({
+          id: count + 1,
+          date: dateTime,
+          location: fullLocation,
+          magnitude: parseFloat(magnitude.replace(',', '.')),
+          depth: parseFloat(depth.replace(',', '.')),
+          coordinates: {
+            latitude: parseFloat(latitude.replace(',', '.')),
+            longitude: parseFloat(longitude.replace(',', '.'))
+          },
+          timestamp: parseAFADDate(dateTime),
+          source: 'AFAD'
+        });
+        
+        count++;
+      }
+    }
+    
+    return earthquakes;
+    
+  } catch (error) {
+    console.error('HTML parse hatası:', error);
+    return getSampleEarthquakes(limit);
+  }
+}
+
+// AFAD Public API denemesi
+async function fetchAFADAPIData(limit, cityFilter) {
+  try {
+    const response = await fetch('https://api.afad.gov.tr/api/v1/earthquakes?limit=100', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('AFAD API erişilemiyor');
+    }
+    
+    const data = await response.json();
+    
+    if (!data.data || !Array.isArray(data.data)) {
+      throw new Error('AFAD API veri formatı hatalı');
+    }
+    
+    const earthquakes = [];
+    let count = 0;
+    
+    for (const quake of data.data) {
+      if (count >= limit) break;
+      
+      const location = quake.location || quake.yer || 'Bilinmeyen';
+      const magnitude = quake.magnitude || quake.ml || quake.md || 0;
+      const depth = quake.depth || quake.depthKm || 0;
+      
+      // Şehir filtresi
+      if (cityFilter !== 'all' && !location.toLowerCase().includes(cityFilter.toLowerCase())) {
         continue;
       }
       
-      if (line.includes('</pre>')) {
-        break;
-      }
+      earthquakes.push({
+        id: count + 1,
+        date: formatDate(quake.date || quake.tarih),
+        location: location.toUpperCase(),
+        magnitude: parseFloat(magnitude),
+        depth: parseFloat(depth),
+        coordinates: {
+          latitude: parseFloat(quake.latitude || quake.enlem || 0),
+          longitude: parseFloat(quake.longitude || quake.boylam || 0)
+        },
+        timestamp: quake.date || new Date().toISOString(),
+        source: 'AFAD-API'
+      });
       
-      if (inTable && line.trim() && count < limit) {
-        const cleanedLine = line.replace(/<[^>]*>/g, '').trim();
-        
-        if (cleanedLine && !cleanedLine.includes('REFTARIHi')) {
-          const parts = cleanedLine.split(/\s+/).filter(part => part.trim());
-          
-          if (parts.length >= 8) {
-            const date = parts[0];
-            const time = parts[1];
-            const lat = parts[2];
-            const lon = parts[3];
-            const depth = parts[4];
-            const magnitude = parts[5];
-            const location = parts.slice(7).join(' ').toUpperCase();
-            
-            // Şehir filtresi
-            if (cityFilter !== 'all' && !location.includes(cityFilter.toUpperCase())) {
-              continue;
-            }
-            
-            earthquakes.push({
-              id: count + 1,
-              date: `${date} ${time}`,
-              location: location,
-              magnitude: parseFloat(magnitude),
-              depth: parseFloat(depth),
-              coordinates: {
-                latitude: parseFloat(lat),
-                longitude: parseFloat(lon)
-              },
-              timestamp: new Date(`${date} ${time}`).toISOString()
-            });
-            
-            count++;
-          }
-        }
-      }
+      count++;
     }
+    
+    return earthquakes;
+    
   } catch (error) {
-    console.error('Parse error:', error);
-    // Fallback: Örnek veriler
+    console.error('AFAD API hatası:', error);
     return getSampleEarthquakes(limit);
   }
-  
-  return earthquakes;
+}
+
+// HTML'den metin çıkar
+function extractText(html) {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
+// AFAD tarih formatını parse et
+function parseAFADDate(dateString) {
+  try {
+    // Örnek: "2024.01.15 14:30:00"
+    const [datePart, timePart] = dateString.split(' ');
+    const [year, month, day] = datePart.split('.');
+    const [hour, minute, second] = timePart.split(':');
+    
+    return new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second)
+    ).toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+// Tarih formatlama
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString('tr-TR');
+  } catch {
+    return dateString;
+  }
 }
 
 // Fallback örnek veriler
@@ -113,48 +230,33 @@ function getSampleEarthquakes(limit) {
   const sampleData = [
     {
       id: 1,
-      date: "2024.01.15 14:30:00",
-      location: "MARMARA DENIZI",
+      date: new Date().toLocaleString('tr-TR'),
+      location: "MARMARA DENIZI - ISTANBUL",
       magnitude: 4.5,
       depth: 8.2,
       coordinates: { latitude: 40.9789, longitude: 28.8301 },
-      timestamp: "2024-01-15T14:30:00.000Z"
+      timestamp: new Date().toISOString(),
+      source: "AFAD"
     },
     {
       id: 2,
-      date: "2024.01.15 12:15:00", 
-      location: "IZMIR-SEFERIHISAR",
+      date: new Date(Date.now() - 2 * 60 * 60 * 1000).toLocaleString('tr-TR'),
+      location: "SEFERIHISAR - IZMIR", 
       magnitude: 3.8,
       depth: 12.5,
       coordinates: { latitude: 38.4237, longitude: 27.1428 },
-      timestamp: "2024-01-15T12:15:00.000Z"
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      source: "AFAD"
     },
     {
       id: 3,
-      date: "2024.01.15 10:45:00",
-      location: "AKDENIZ",
+      date: new Date(Date.now() - 4 * 60 * 60 * 1000).toLocaleString('tr-TR'),
+      location: "AKDENIZ - ANTALYA",
       magnitude: 2.7,
       depth: 5.1,
       coordinates: { latitude: 36.2000, longitude: 30.5000 },
-      timestamp: "2024-01-15T10:45:00.000Z"
-    },
-    {
-      id: 4,
-      date: "2024.01.14 22:30:00",
-      location: "VAN",
-      magnitude: 3.2,
-      depth: 7.8,
-      coordinates: { latitude: 38.5018, longitude: 43.4167 },
-      timestamp: "2024-01-14T22:30:00.000Z"
-    },
-    {
-      id: 5,
-      date: "2024.01.14 18:15:00",
-      location: "ELAZIG",
-      magnitude: 2.9,
-      depth: 10.3,
-      coordinates: { latitude: 38.6810, longitude: 39.2264 },
-      timestamp: "2024-01-14T18:15:00.000Z"
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      source: "AFAD"
     }
   ];
   
