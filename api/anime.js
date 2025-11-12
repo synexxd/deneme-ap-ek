@@ -16,21 +16,8 @@ export default async function handler(req, res) {
       const response = await fetch(`https://api.waifu.pics/sfw/${tag}`);
       const data = await response.json();
       
-      // Waifu.pics URL'sinden ID'yi çıkar
-      const imageUrl = data.url;
-      let imageId = 'unknown';
-      
-      // URL'den ID'yi parse et
-      if (imageUrl.includes('waifu.pics/')) {
-        const urlParts = imageUrl.split('/');
-        const filename = urlParts[urlParts.length - 1];
-        imageId = filename.split('.')[0];
-      }
-      
       images.push({
-        imageUrl: imageUrl,
-        id: imageId,
-        tag: tag
+        imageUrl: data.url
       });
     }
 
@@ -38,10 +25,6 @@ export default async function handler(req, res) {
       status: 'success',
       endpoint: '/api/anime',
       method: req.method,
-      parameters: {
-        tag: tag,
-        amount: amount
-      },
       images: images
     });
 
