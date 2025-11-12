@@ -3,39 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI</title>
+    <title>SynexAPI - Anime API</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1> SynexAPI - ANİME</h1>
-            <p>Waifu.pics API ile otomatik anime resimleri</p>
+            <h1>🎌 SynexAPI Anime</h1>
+            <p>Waifu.pics API ile otomatik anime resimleri - GET & POST destekli</p>
         </header>
 
         <div class="api-cards">
             <!-- Anime API Kartı -->
             <div class="api-card">
                 <div class="api-header">
-                    <div class="method-badge post">POST</div>
+                    <div class="method-badge get">GET/POST</div>
                     <div class="api-title">Anime</div>
                 </div>
 
                 <div class="endpoint">/api/anime</div>
 
                 <div class="description">
-                    BİR SÜRÜ ANİME FOTOSU
+                    Waifu.pics API'den otomatik anime resimleri - GET ve POST methodları desteklenir
                 </div>
 
                 <div class="parameters">
                     <div class="section-title">Parameters:</div>
                     <div class="parameter">
                         <span class="param-name">tag</span>
-                        <span class="param-desc">(opsiyonel) waifu, neko, shinobu, megumin</span>
+                        <span class="param-desc">(opsiyonel) waifu, neko, shinobu, megumin, husbando</span>
                     </div>
                     <div class="parameter">
                         <span class="param-name">amount</span>
-                        <span class="param-desc">(opsiyonel) resim sayısı (default: 1)</span>
+                        <span class="param-desc">(opsiyonel) resim sayısı (default: 1, max: 10)</span>
+                    </div>
+                </div>
+
+                <div class="methods">
+                    <div class="section-title">HTTP Methods:</div>
+                    <div class="method-examples">
+                        <div class="method-example">
+                            <strong>GET:</strong>
+                            <code>/api/anime?tag=neko&amount=3</code>
+                        </div>
+                        <div class="method-example">
+                            <strong>POST:</strong>
+                            <code>{ "tag": "waifu", "amount": 2 }</code>
+                        </div>
                     </div>
                 </div>
 
@@ -43,7 +57,8 @@
                     <div class="section-title">Response:</div>
                     <pre>{
   "status": "success",
-  "endpoint": "/api/anime", 
+  "endpoint": "/api/anime",
+  "method": "GET",
   "images": [
     {
       "imageUrl": "https://i.waifu.pics/...",
@@ -56,16 +71,30 @@
 
                 <div class="demo-section">
                     <div class="section-title">Demo:</div>
-                    <button onclick="testAnimeAPI()" class="test-btn">
-                         API TESTİ
-                    </button>
+                    <div class="demo-controls">
+                        <select id="demoTag" class="demo-input">
+                            <option value="waifu">waifu</option>
+                            <option value="neko">neko</option>
+                            <option value="shinobu">shinobu</option>
+                            <option value="megumin">megumin</option>
+                            <option value="husbando">husbando</option>
+                        </select>
+                        <input type="number" id="demoAmount" class="demo-input" value="2" min="1" max="10">
+                        <select id="demoMethod" class="demo-input">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                        </select>
+                        <button onclick="testAnimeAPI()" class="test-btn">
+                            🎌 API'yi Test Et
+                        </button>
+                    </div>
                     <div id="demoResults"></div>
                 </div>
 
                 <div class="api-footer">
                     <div class="date">08.02.2025</div>
                     <button onclick="copyCode()" class="copy-btn">
-                         Kopyala
+                        📋 Kopyala
                     </button>
                 </div>
             </div>
