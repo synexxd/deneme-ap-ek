@@ -11,15 +11,11 @@ export default async function handler(req, res) {
 
     amount = Math.min(parseInt(amount), 50);
     
-    // Kandilli API'den deprem verilerini çek
-    const response = await fetch('http://www.koeri.boun.edu.tr/scripts/lst0.asp');
-    const text = await response.text();
-    
-    // API'den gelen veriyi parse et (basit örnek)
+    // Örnek deprem verileri
     const earthquakes = [
       {
         id: 1,
-        location: "İstanbul",
+        location: "İstanbul - Silivri",
         magnitude: 4.5,
         depth: 8.2,
         date: "2024-01-15 14:30:00",
@@ -27,11 +23,19 @@ export default async function handler(req, res) {
       },
       {
         id: 2,
-        location: "İzmir",
+        location: "İzmir - Seferihisar",
         magnitude: 3.8,
         depth: 12.5,
         date: "2024-01-15 12:15:00",
         coordinates: "38.4237, 27.1428"
+      },
+      {
+        id: 3,
+        location: "Ankara - Çankaya",
+        magnitude: 2.7,
+        depth: 5.1,
+        date: "2024-01-15 10:45:00",
+        coordinates: "39.9334, 32.8597"
       }
     ].slice(0, amount);
 
