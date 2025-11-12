@@ -62,7 +62,6 @@ function parseKandilliData(html, limit, cityFilter) {
       }
       
       if (inTable && line.trim() && count < limit) {
-        // Örnek veri formatı: "2024.01.15 14:30:00  40.9789  28.8301   8.2   4.5  -.-  ISTANBUL SILIVRI"
         const cleanedLine = line.replace(/<[^>]*>/g, '').trim();
         
         if (cleanedLine && !cleanedLine.includes('REFTARIHi')) {
