@@ -41,9 +41,12 @@
                     </div>
                 </div>
 
-                <div class="response">
-                    <div class="section-title">Dönüş:</div>
-                    <div class="response-code">{
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('anime')">
+                        <div class="section-title">Dönüş:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responseAnime">{
   "endpoint": "/api/anime",
   "images": [
     {
@@ -89,9 +92,12 @@
                     </div>
                 </div>
 
-                <div class="response">
-                    <div class="section-title">Dönüş:</div>
-                    <div class="response-code">{
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('deprem')">
+                        <div class="section-title">Dönüş:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responseDeprem">{
   "status": "success",
   "endpoint": "/api/deprem",
   "method": "GET",
@@ -151,9 +157,12 @@
                     </div>
                 </div>
 
-                <div class="response">
-                    <div class="section-title">Dönüş:</div>
-                    <div class="response-code">{
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('weather')">
+                        <div class="section-title">Dönüş:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responseWeather">{
   "status": "success",
   "endpoint": "/api/weather",
   "city": "Istanbul",
@@ -224,9 +233,12 @@
                     </div>
                 </div>
 
-                <div class="response">
-                    <div class="section-title">Dönüş:</div>
-                    <div class="response-code">{
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('doviz')">
+                        <div class="section-title">Dönüş:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responseDoviz">{
   "status": "success",
   "endpoint": "/api/doviz",
   "base_currency": {
@@ -274,6 +286,33 @@
     </div>
 
     <script>
+        // Response bölümlerini açıp kapama
+        function toggleResponse(type) {
+            const responseElement = document.getElementById(`response${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            const toggleIcon = responseElement.parentElement.querySelector('.toggle-icon');
+            
+            if (responseElement.style.display === 'none' || !responseElement.style.display) {
+                responseElement.style.display = 'block';
+                toggleIcon.textContent = '▲';
+            } else {
+                responseElement.style.display = 'none';
+                toggleIcon.textContent = '▼';
+            }
+        }
+
+        // Sayfa yüklendiğinde tüm response bölümlerini kapalı yap
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tüm response bölümlerini başlangıçta kapalı yap
+            document.querySelectorAll('.response-code').forEach(element => {
+                element.style.display = 'none';
+            });
+            
+            // Tüm toggle icon'ları ayarla
+            document.querySelectorAll('.toggle-icon').forEach(icon => {
+                icon.textContent = '▼';
+            });
+        });
+
         // Weather API Frontend
         class WeatherAPI {
             constructor() {
