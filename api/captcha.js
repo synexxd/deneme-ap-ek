@@ -1,10 +1,41 @@
-// captcha.js - Basit Resimli CAPTCHA Sistemi
+// captcha.js - Google Resimli CAPTCHA Sistemi
 
-class SimpleCaptcha {
+class ImageCaptcha {
     constructor() {
-        this.currentCaptcha = '';
-        this.captchaLength = 6;
-        this.chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // O ve 0, I ve 1 karışmaması için
+        this.currentChallenge = null;
+        this.selectedImages = [];
+        this.categories = [
+            {
+                name: 'trafik',
+                question: 'Trafik ışıklarını seçin',
+                keywords: ['traffic light', 'stop light', 'signal light']
+            },
+            {
+                name: 'araba',
+                question: 'Arabaları seçin',
+                keywords: ['car', 'automobile', 'vehicle']
+            },
+            {
+                name: 'köpek',
+                question: 'Köpekleri seçin',
+                keywords: ['dog', 'puppy', 'canine']
+            },
+            {
+                name: 'kedi',
+                question: 'Kedileri seçin',
+                keywords: ['cat', 'kitten', 'feline']
+            },
+            {
+                name: 'ağaç',
+                question: 'Ağaçları seçin',
+                keywords: ['tree', 'forest', 'wood']
+            },
+            {
+                name: 'bina',
+                question: 'Binaları seçin',
+                keywords: ['building', 'house', 'architecture']
+            }
+        ];
         this.init();
     }
 
@@ -13,111 +44,178 @@ class SimpleCaptcha {
         this.setupEventListeners();
     }
 
-    // CAPTCHA kodu oluştur
-    generateCaptcha() {
-        let captcha = '';
-        for (let i = 0; i < this.captchaLength; i++) {
-            captcha += this.chars.charAt(Math.floor(Math.random() * this.chars.length));
-        }
-        this.currentCaptcha = captcha;
-        this.renderCaptchaImage();
-        this.clearInput();
-        this.hideResult();
-        return captcha;
+    // Ücretsiz Google resim URL'leri (örnek - gerçek uygulamada API kullanın)
+    getImageUrls(keyword) {
+        // Bu örnekte sabit resimler kullanıyoruz
+        // Gerçek uygulamada Google Custom Search API veya benzeri kullanabilirsiniz
+        const sampleImages = {
+            'trafik': [
+                'https://images.unsplash.com/photo-1580391565090-8a0d1d14528f?w=150',
+                'https://images.unsplash.com/photo-1558553955-45344058d6fb?w=150',
+                'https://images.unsplash.com/photo-1580560010415-67527b764848?w=150'
+            ],
+            'araba': [
+                'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=150',
+                'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?w=150',
+                'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=150'
+            ],
+            'köpek': [
+                'https://images.unsplash.com/photo-1517423738875-5ce310acd3da?w=150',
+                'https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=150',
+                'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=150'
+            ],
+            'kedi': [
+                'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150',
+                'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=150',
+                'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=150'
+            ],
+            'ağaç': [
+                'https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=150',
+                'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=150',
+                'https://images.unsplash.com/photo-1503435980610-a51f3ddfee50?w=150'
+            ],
+            'bina': [
+                'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150',
+                'https://images.unsplash.com/photo-1503387769-00ec6eccf2e7?w=150',
+                'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=150'
+            ]
+        };
+        
+        return sampleImages[keyword] || [
+            'https://images.unsplash.com/photo-1579546929662-711aa81148cf?w=150',
+            'https://images.unsplash.com/photo-1557683316-973673baf926?w=150',
+            'https://images.unsplash.com/photo-1558636508-e2180cb7c4e9?w=150'
+        ];
     }
 
-    // CAPTCHA görselini oluştur
-    renderCaptchaImage() {
-        const canvas = document.getElementById('captchaCanvas');
-        const ctx = canvas.getContext('2d');
+    // CAPTCHA oluştur
+    generateCaptcha() {
+        // Rastgele kategori seç
+        const correctCategory = this.categories[Math.floor(Math.random() * this.categories.length)];
+        const otherCategories = this.categories.filter(cat => cat.name !== correctCategory.name);
         
-        // Canvas'ı temizle
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 9 resim oluştur (3 doğru, 6 yanlış)
+        const images = [];
         
-        // Arkaplan
-        ctx.fillStyle = '#667eea';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Gürültü çizgileri
-        for (let i = 0; i < 8; i++) {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.3})`;
-            ctx.lineWidth = Math.random() * 2 + 1;
-            ctx.beginPath();
-            ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-            ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
-            ctx.stroke();
+        // Doğru kategoriden 3 resim
+        const correctImages = this.getImageUrls(correctCategory.name);
+        for (let i = 0; i < 3; i++) {
+            images.push({
+                url: correctImages[i % correctImages.length],
+                category: correctCategory.name,
+                isCorrect: true
+            });
         }
         
-        // Noktalar
-        for (let i = 0; i < 50; i++) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5})`;
-            ctx.beginPath();
-            ctx.arc(
-                Math.random() * canvas.width,
-                Math.random() * canvas.height,
-                Math.random() * 2,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
+        // Yanlış kategorilerden 6 resim
+        for (let i = 0; i < 6; i++) {
+            const randomCategory = otherCategories[Math.floor(Math.random() * otherCategories.length)];
+            const wrongImages = this.getImageUrls(randomCategory.name);
+            images.push({
+                url: wrongImages[i % wrongImages.length],
+                category: randomCategory.name,
+                isCorrect: false
+            });
         }
         
-        // Metin
-        ctx.font = 'bold 35px Arial';
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        // Resimleri karıştır
+        this.shuffleArray(images);
         
-        // Her karakter için farklı efekt
-        const charSpacing = 30;
-        const startX = canvas.width / 2 - ((this.captchaLength - 1) * charSpacing) / 2;
+        this.currentChallenge = {
+            question: correctCategory.question,
+            images: images,
+            correctCategory: correctCategory.name
+        };
         
-        for (let i = 0; i < this.captchaLength; i++) {
-            const char = this.currentCaptcha[i];
-            const x = startX + i * charSpacing;
-            const y = canvas.height / 2;
+        this.selectedImages = [];
+        this.renderCaptcha();
+        this.hideResult();
+        
+        return this.currentChallenge;
+    }
+
+    // CAPTCHA'yı ekranda göster
+    renderCaptcha() {
+        const questionElement = document.getElementById('captchaQuestion');
+        const imagesContainer = document.getElementById('captchaImages');
+        
+        questionElement.textContent = this.currentChallenge.question;
+        imagesContainer.innerHTML = '';
+        
+        this.currentChallenge.images.forEach((image, index) => {
+            const imageElement = document.createElement('div');
+            imageElement.className = 'captcha-image';
+            imageElement.innerHTML = `
+                <img src="${image.url}" alt="CAPTCHA resim ${index + 1}" loading="lazy">
+                <div class="captcha-image-overlay">✓</div>
+            `;
             
-            // Hafif döndürme
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate((Math.random() - 0.5) * 0.4);
+            imageElement.addEventListener('click', () => {
+                this.toggleImageSelection(index);
+            });
             
-            // Gölge efekti
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 3;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
-            
-            ctx.fillText(char, 0, 0);
-            ctx.restore();
+            imagesContainer.appendChild(imageElement);
+        });
+    }
+
+    // Resim seçimi
+    toggleImageSelection(index) {
+        const imageElement = document.querySelectorAll('.captcha-image')[index];
+        const isSelected = this.selectedImages.includes(index);
+        
+        if (isSelected) {
+            // Seçimi kaldır
+            this.selectedImages = this.selectedImages.filter(i => i !== index);
+            imageElement.classList.remove('selected');
+        } else {
+            // Seçimi ekle
+            this.selectedImages.push(index);
+            imageElement.classList.add('selected');
+        }
+        
+        // Otomatik doğrulama (3 resim seçildiğinde)
+        if (this.selectedImages.length === 3) {
+            setTimeout(() => {
+                this.verifyCaptcha();
+            }, 500);
         }
     }
 
     // CAPTCHA doğrulama
     verifyCaptcha() {
-        const userInput = document.getElementById('captchaInput').value.toUpperCase();
-        const resultElement = document.getElementById('captchaResult');
-        
-        // Giriş kontrolü
-        if (!userInput) {
-            this.showResult('⚠️ Lütfen CAPTCHA kodunu girin!', 'error');
+        if (this.selectedImages.length === 0) {
+            this.showResult('⚠️ Lütfen resimleri seçin!', 'error');
             return false;
         }
         
-        if (userInput.length !== this.captchaLength) {
-            this.showResult(`⚠️ Kod ${this.captchaLength} karakter olmalı!`, 'error');
-            return false;
-        }
+        // Doğru resimleri kontrol et
+        const correctSelections = this.selectedImages.filter(index => 
+            this.currentChallenge.images[index].isCorrect
+        );
         
-        // Doğrulama
-        if (userInput === this.currentCaptcha) {
+        const allCorrect = correctSelections.length === 3 && 
+                          this.selectedImages.length === 3;
+        
+        if (allCorrect) {
             this.showResult('✅ CAPTCHA başarıyla doğrulandı!', 'success');
             return true;
         } else {
-            this.showResult('❌ CAPTCHA kodu hatalı! Lütfen tekrar deneyin.', 'error');
-            this.generateCaptcha(); // Hatalı girişte yeni CAPTCHA
+            this.showResult('❌ Yanlış seçim! Lütfen tekrar deneyin.', 'error');
+            // Hatalı girişte yeni CAPTCHA
+            setTimeout(() => {
+                this.generateCaptcha();
+            }, 2000);
             return false;
         }
+    }
+
+    // Dizi karıştırma
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
 
     // Sonuç mesajını göster
@@ -134,33 +232,11 @@ class SimpleCaptcha {
         resultElement.style.display = 'none';
     }
 
-    // Input'u temizle
-    clearInput() {
-        document.getElementById('captchaInput').value = '';
-    }
-
     // Event listener'ları kur
     setupEventListeners() {
-        // Input'ta Enter tuşu desteği
-        document.getElementById('captchaInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.verifyCaptcha();
-            }
-        });
-        
         // Yenile butonu
         document.getElementById('reloadCaptcha').addEventListener('click', () => {
             this.generateCaptcha();
-        });
-        
-        // Doğrula butonu
-        document.getElementById('verifyCaptcha').addEventListener('click', () => {
-            this.verifyCaptcha();
-        });
-        
-        // Input temizleme
-        document.getElementById('captchaInput').addEventListener('focus', () => {
-            this.hideResult();
         });
     }
 
@@ -169,32 +245,32 @@ class SimpleCaptcha {
         return this.generateCaptcha();
     }
 
-    // Mevcut CAPTCHA kodunu al
-    getCurrentCaptcha() {
-        return this.currentCaptcha;
+    // Mevcut CAPTCHA'yı al
+    getCurrentChallenge() {
+        return this.currentChallenge;
     }
 }
 
 // Sayfa yüklendiğinde CAPTCHA'yı başlat
 document.addEventListener('DOMContentLoaded', function() {
-    window.simpleCaptcha = new SimpleCaptcha();
+    window.imageCaptcha = new ImageCaptcha();
 });
 
 // API fonksiyonları
 window.CaptchaAPI = {
     generate: function() {
-        return window.simpleCaptcha.generateCaptcha();
+        return window.imageCaptcha.generateCaptcha();
     },
     
-    verify: function(input) {
-        return window.simpleCaptcha.verifyCaptcha(input);
+    verify: function() {
+        return window.imageCaptcha.verifyCaptcha();
     },
     
     refresh: function() {
-        return window.simpleCaptcha.refresh();
+        return window.imageCaptcha.refresh();
     },
     
     getCurrent: function() {
-        return window.simpleCaptcha.getCurrentCaptcha();
+        return window.imageCaptcha.getCurrentChallenge();
     }
 };
