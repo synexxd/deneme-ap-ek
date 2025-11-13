@@ -1,4 +1,4 @@
-// captcha.js - Google Resimli CAPTCHA Sistemi
+// captcha.js - Placeholder Resimli CAPTCHA Sistemi
 
 class ImageCaptcha {
     constructor() {
@@ -8,32 +8,32 @@ class ImageCaptcha {
             {
                 name: 'trafik',
                 question: 'Trafik ışıklarını seçin',
-                keywords: ['traffic light', 'stop light', 'signal light']
+                color: '#FF6B6B'
             },
             {
                 name: 'araba',
                 question: 'Arabaları seçin',
-                keywords: ['car', 'automobile', 'vehicle']
+                color: '#4ECDC4'
             },
             {
                 name: 'köpek',
                 question: 'Köpekleri seçin',
-                keywords: ['dog', 'puppy', 'canine']
+                color: '#45B7D1'
             },
             {
                 name: 'kedi',
                 question: 'Kedileri seçin',
-                keywords: ['cat', 'kitten', 'feline']
+                color: '#FFD93D'
             },
             {
                 name: 'ağaç',
                 question: 'Ağaçları seçin',
-                keywords: ['tree', 'forest', 'wood']
+                color: '#6BCF7F'
             },
             {
                 name: 'bina',
                 question: 'Binaları seçin',
-                keywords: ['building', 'house', 'architecture']
+                color: '#9B59B6'
             }
         ];
         this.init();
@@ -44,45 +44,15 @@ class ImageCaptcha {
         this.setupEventListeners();
     }
 
-    // Düzgün çalışan resim URL'leri
-    getImageUrls(keyword) {
-        const imageCollections = {
-            'trafik': [
-                'https://images.unsplash.com/photo-1580391565090-8a0d1d14528f?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1558553955-45344058d6fb?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1580560010415-67527b764848?w=200&h=150&fit=crop'
-            ],
-            'araba': [
-                'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=200&h=150&fit=crop'
-            ],
-            'köpek': [
-                'https://images.unsplash.com/photo-1517423738875-5ce310acd3da?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=200&h=150&fit=crop'
-            ],
-            'kedi': [
-                'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=200&h=150&fit=crop'
-            ],
-            'ağaç': [
-                'https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1503435980610-a51f3ddfee50?w=200&h=150&fit=crop'
-            ],
-            'bina': [
-                'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1503387769-00ec6eccf2e7?w=200&h=150&fit=crop',
-                'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=200&h=150&fit=crop'
-            ]
-        };
+    // Placeholder resim URL'leri
+    getImageUrls(categoryName, categoryColor) {
+        const baseColor = categoryColor || '#667eea';
+        const text = categoryName.toUpperCase();
         
-        return imageCollections[keyword] || [
-            'https://images.unsplash.com/photo-1579546929662-711aa81148cf?w=200&h=150&fit=crop',
-            'https://images.unsplash.com/photo-1557683316-973673baf926?w=200&h=150&fit=crop',
-            'https://images.unsplash.com/photo-1558636508-e2180cb7c4e9?w=200&h=150&fit=crop'
+        return [
+            `https://via.placeholder.com/200x150/${baseColor.replace('#', '')}/FFFFFF?text=${text}+1`,
+            `https://via.placeholder.com/200x150/${baseColor.replace('#', '')}/FFFFFF?text=${text}+2`,
+            `https://via.placeholder.com/200x150/${baseColor.replace('#', '')}/FFFFFF?text=${text}+3`
         ];
     }
 
@@ -96,23 +66,25 @@ class ImageCaptcha {
         const images = [];
         
         // Doğru kategoriden 3 resim
-        const correctImages = this.getImageUrls(correctCategory.name);
+        const correctImages = this.getImageUrls(correctCategory.name, correctCategory.color);
         for (let i = 0; i < 3; i++) {
             images.push({
-                url: correctImages[i % correctImages.length],
+                url: correctImages[i],
                 category: correctCategory.name,
-                isCorrect: true
+                isCorrect: true,
+                color: correctCategory.color
             });
         }
         
         // Yanlış kategorilerden 6 resim
         for (let i = 0; i < 6; i++) {
             const randomCategory = otherCategories[Math.floor(Math.random() * otherCategories.length)];
-            const wrongImages = this.getImageUrls(randomCategory.name);
+            const wrongImages = this.getImageUrls(randomCategory.name, randomCategory.color);
             images.push({
                 url: wrongImages[i % wrongImages.length],
                 category: randomCategory.name,
-                isCorrect: false
+                isCorrect: false,
+                color: randomCategory.color
             });
         }
         
@@ -144,7 +116,7 @@ class ImageCaptcha {
             const imageElement = document.createElement('div');
             imageElement.className = 'captcha-image';
             imageElement.innerHTML = `
-                <img src="${image.url}" alt="CAPTCHA resim ${index + 1}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x150/667eea/ffffff?text=Resim+Yükleniyor'">
+                <img src="${image.url}" alt="${image.category} resim ${index + 1}" loading="lazy">
                 <div class="captcha-image-overlay">✓</div>
             `;
             
