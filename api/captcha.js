@@ -1,9 +1,10 @@
-// captcha.js - 7 Haneli Sayı CAPTCHA Sistemi
+// captcha.js - Canvas Kullanmadan CAPTCHA Sistemi
 
 class SimpleCaptcha {
     constructor() {
         this.currentCaptcha = '';
         this.captchaLength = 7;
+        this.apiBaseUrl = window.location.origin + '/api';
         this.init();
     }
 
@@ -16,105 +17,97 @@ class SimpleCaptcha {
     generateCaptcha() {
         let captcha = '';
         for (let i = 0; i < this.captchaLength; i++) {
-            captcha += Math.floor(Math.random() * 10); // 0-9 arası rakam
+            captcha += Math.floor(Math.random() * 10);
         }
         this.currentCaptcha = captcha;
-        this.renderCaptchaImage();
+        this.renderCaptchaDisplay();
         this.clearInput();
         this.hideResult();
         return captcha;
     }
 
-    // CAPTCHA görselini oluştur
-    renderCaptchaImage() {
-        const canvas = document.getElementById('captchaCanvas');
-        const ctx = canvas.getContext('2d');
+    // CAPTCHA görselini oluştur (canvas yerine HTML/CSS)
+    renderCaptchaDisplay() {
+        const captchaDisplay = document.getElementById('captchaDisplay');
         
-        // Canvas'ı temizle
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Arkaplan gradient
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, '#667eea');
-        gradient.addColorStop(1, '#764ba2');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Gürültü çizgileri (harfleri tam kaplamayacak)
-        for (let i = 0; i < 15; i++) {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.4 + 0.2})`;
-            ctx.lineWidth = Math.random() * 1.5 + 0.5;
-            ctx.beginPath();
-            ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-            ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
-            ctx.stroke();
-        }
-        
-        // Noktalar
-        for (let i = 0; i < 80; i++) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.3})`;
-            ctx.beginPath();
-            ctx.arc(
-                Math.random() * canvas.width,
-                Math.random() * canvas.height,
-                Math.random() * 1.5,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
-        }
-        
-        // Metin (7 haneli sayı)
-        ctx.font = 'bold 40px Arial';
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        // Her rakam için farklı efekt
-        const charSpacing = 35;
-        const startX = canvas.width / 2 - ((this.captchaLength - 1) * charSpacing) / 2;
-        
-        for (let i = 0; i < this.captchaLength; i++) {
-            const char = this.currentCaptcha[i];
-            const x = startX + i * charSpacing;
-            const y = canvas.height / 2;
+        // CAPTCHA kodunu parçalara ayır ve stil uygula
+        const captchaHTML = this.currentCaptcha.split('').map((digit, index) => {
+            // Her rakam için rastgele stil
+            const rotation = (Math.random() - 0.5) * 15; // -15° ile +15° arası
+            const scale = 0.8 + Math.random() * 0.4; // 0.8x ile 1.2x arası
+            const colorVariation = Math.floor(Math.random() * 50); // Renk varyasyonu
             
-            // Hafif döndürme (-10° ile +10° arası)
-            const rotation = (Math.random() - 0.5) * 0.3;
-            
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(rotation);
-            
-            // Gölge efekti
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
-            
-            ctx.fillText(char, 0, 0);
-            ctx.restore();
-        }
-        
-        // Ek çizgiler (rakamların üstüne ama tam kaplamayacak)
+            return `
+                <span class="captcha-digit" 
+                      style="transform: rotate(${rotation}deg) scale(${scale});
+                             color: rgb(${50 + colorVariation}, ${50 + colorVariation}, ${50 + colorVariation});
+                             display: inline-block;
+                             margin: 0 2px;
+                             font-weight: bold;
+                             font-size: ${24 + Math.random() * 8}px;">
+                    ${digit}
+                </span>
+            `;
+        }).join('');
+
+        captchaDisplay.innerHTML = `
+            <div class="captcha-container-inner">
+                <div class="captcha-background">
+                    ${this.generateNoiseLines()}
+                    ${captchaHTML}
+                    ${this.generateNoiseDots()}
+                </div>
+            </div>
+        `;
+    }
+
+    // Gürültü çizgileri oluştur
+    generateNoiseLines() {
+        let linesHTML = '';
         for (let i = 0; i < 8; i++) {
-            ctx.strokeStyle = `rgba(0, 0, 0, ${Math.random() * 0.3 + 0.1})`;
-            ctx.lineWidth = Math.random() * 2 + 1;
-            ctx.beginPath();
+            const width = 60 + Math.random() * 80;
+            const rotation = (Math.random() - 0.5) * 60;
+            const opacity = 0.1 + Math.random() * 0.3;
+            const top = Math.random() * 100;
+            const left = Math.random() * 100;
             
-            const startX = Math.random() * canvas.width * 0.8 + canvas.width * 0.1;
-            const startY = Math.random() * canvas.height * 0.6 + canvas.height * 0.2;
-            const endX = startX + (Math.random() - 0.5) * 100;
-            const endY = startY + (Math.random() - 0.5) * 50;
-            
-            ctx.moveTo(startX, startY);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
+            linesHTML += `
+                <div class="noise-line" 
+                     style="width: ${width}px;
+                            transform: rotate(${rotation}deg);
+                            opacity: ${opacity};
+                            top: ${top}%;
+                            left: ${left}%;">
+                </div>
+            `;
         }
+        return linesHTML;
+    }
+
+    // Gürültü noktaları oluştur
+    generateNoiseDots() {
+        let dotsHTML = '';
+        for (let i = 0; i < 20; i++) {
+            const size = 1 + Math.random() * 3;
+            const opacity = 0.1 + Math.random() * 0.4;
+            const top = Math.random() * 100;
+            const left = Math.random() * 100;
+            
+            dotsHTML += `
+                <div class="noise-dot" 
+                     style="width: ${size}px;
+                            height: ${size}px;
+                            opacity: ${opacity};
+                            top: ${top}%;
+                            left: ${left}%;">
+                </div>
+            `;
+        }
+        return dotsHTML;
     }
 
     // CAPTCHA doğrulama
-    verifyCaptcha() {
+    async verifyCaptcha() {
         const userInput = document.getElementById('captchaInput').value;
         const resultElement = document.getElementById('captchaResult');
         
@@ -135,14 +128,62 @@ class SimpleCaptcha {
             return false;
         }
         
-        // Doğrulama
-        if (userInput === this.currentCaptcha) {
-            this.showResult('✅ CAPTCHA başarıyla doğrulandı!', 'success');
-            return true;
-        } else {
-            this.showResult('❌ CAPTCHA kodu hatalı! Lütfen tekrar deneyin.', 'error');
-            this.generateCaptcha(); // Hatalı girişte yeni CAPTCHA
-            return false;
+        // Backend API'ye doğrulama isteği gönder
+        try {
+            this.showResult('⏳ Doğrulanıyor...', 'info');
+            
+            // Backend API'yi kullan
+            const response = await fetch(this.apiBaseUrl + '/captcha/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    code: userInput
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.verified) {
+                this.showResult('✅ CAPTCHA başarıyla doğrulandı!', 'success');
+                return true;
+            } else {
+                this.showResult('❌ CAPTCHA kodu hatalı!', 'error');
+                this.generateCaptcha();
+                return false;
+            }
+            
+        } catch (error) {
+            // Backend API çalışmıyorsa client-side doğrulama
+            console.log('Backend API hatası, client-side doğrulama kullanılıyor:', error);
+            
+            if (userInput === this.currentCaptcha) {
+                this.showResult('✅ CAPTCHA başarıyla doğrulandı!', 'success');
+                return true;
+            } else {
+                this.showResult('❌ CAPTCHA kodu hatalı!', 'error');
+                this.generateCaptcha();
+                return false;
+            }
+        }
+    }
+
+    // Backend API'den CAPTCHA oluştur
+    async generateCaptchaFromAPI() {
+        try {
+            const response = await fetch(this.apiBaseUrl + '/captcha');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                this.currentCaptcha = data.code;
+                this.renderCaptchaDisplay();
+                this.clearInput();
+                this.hideResult();
+            }
+        } catch (error) {
+            console.log('Backend API hatası, client-side CAPTCHA kullanılıyor:', error);
+            this.generateCaptcha();
         }
     }
 
@@ -181,7 +222,7 @@ class SimpleCaptcha {
         
         // Yenile butonu
         document.getElementById('reloadCaptcha').addEventListener('click', () => {
-            this.generateCaptcha();
+            this.generateCaptchaFromAPI();
         });
         
         // Doğrula butonu
@@ -197,7 +238,7 @@ class SimpleCaptcha {
 
     // CAPTCHA'yı manuel olarak yenile
     refresh() {
-        return this.generateCaptcha();
+        return this.generateCaptchaFromAPI();
     }
 
     // Mevcut CAPTCHA kodunu al
@@ -214,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // API fonksiyonları
 window.CaptchaAPI = {
     generate: function() {
-        return window.simpleCaptcha.generateCaptcha();
+        return window.simpleCaptcha.generateCaptchaFromAPI();
     },
     
     verify: function() {
