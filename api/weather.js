@@ -1,4 +1,4 @@
-// weather.js - Sadece Open-Meteo API Entegrasyonu
+// weather.js - Open-Meteo API Entegrasyonu
 
 class WeatherAPI {
     constructor() {
@@ -169,6 +169,11 @@ class WeatherAPI {
         const url = `${this.openMeteoBaseUrl}/forecast?latitude=${cityCoords.lat}&longitude=${cityCoords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
 
         const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('API isteği başarısız oldu');
+        }
+        
         const data = await response.json();
 
         if (!data.current || !data.daily) {
@@ -211,6 +216,16 @@ class WeatherAPI {
         const current = data.current;
         const forecast = data.daily;
 
+        // Tarih formatını düzelt
+        const formatDate = (dateString) => {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('tr-TR', { 
+                weekday: 'short', 
+                day: 'numeric', 
+                month: 'short' 
+            });
+        };
+
         const weatherHTML = `
             <div class="weather-card">
                 <div class="weather-header">
@@ -244,7 +259,7 @@ class WeatherAPI {
                     <div class="forecast-items">
                         ${forecast.time.map((date, index) => `
                             <div class="forecast-item">
-                                <div class="forecast-date">${new Date(date).toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+                                <div class="forecast-date">${formatDate(date)}</div>
                                 <div class="forecast-temp">${Math.round(forecast.temperature_2m_min[index])}° / ${Math.round(forecast.temperature_2m_max[index])}°</div>
                                 <div class="forecast-desc">${this.getWeatherDescription(forecast.weather_code[index])}</div>
                                 <div class="forecast-precip">${forecast.precipitation_sum[index] || 0} mm</div>
