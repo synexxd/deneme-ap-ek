@@ -262,24 +262,6 @@
 }</div>
                 </div>
 
-                <!-- Döviz Demo Alanı -->
-                <div class="doviz-demo">
-                    <div class="section-title">Demo: Döviz Kurları</div>
-                    <div class="doviz-container">
-                        <div class="doviz-input-group">
-                            <select id="dovizBase" class="doviz-select">
-                                <option value="usd">USD - Amerikan Doları</option>
-                                <option value="eur">EUR - Euro</option>
-                                <option value="gbp">GBP - İngiliz Sterlini</option>
-                                <option value="chf">CHF - İsviçre Frangı</option>
-                                <option value="jpy">JPY - Japon Yeni</option>
-                            </select>
-                            <button class="doviz-btn" id="getDoviz">Sorgula</button>
-                        </div>
-                        <div id="dovizResult" class="doviz-result"></div>
-                    </div>
-                </div>
-
                 <div class="api-footer">
                     <div class="date">08.02.2025</div>
                     <button class="copy-btn" onclick="copyToClipboard('doviz')">
@@ -408,142 +390,6 @@
                     if (e.key === 'Enter') {
                         this.getWeather();
                     }
-                });
-            }
-        }
-
-        // Döviz API Frontend
-        class DovizAPI {
-            constructor() {
-                this.apiBaseUrl = '/api';
-                this.init();
-            }
-
-            init() {
-                this.setupEventListeners();
-            }
-
-            async getDoviz() {
-                const baseSelect = document.getElementById('dovizBase');
-                const base = baseSelect.value;
-                const resultElement = document.getElementById('dovizResult');
-
-                try {
-                    this.showResult('⏳ Döviz kurları alınıyor...', 'info');
-                    const response = await fetch(`${this.apiBaseUrl}/doviz?base=${encodeURIComponent(base)}`);
-                    const data = await response.json();
-
-                    if (data.status === 'success') {
-                        this.displayDoviz(data);
-                    } else {
-                        this.showResult(`❌ ${data.error}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Döviz hatası:', error);
-                    this.showResult('❌ Döviz kurları alınamadı!', 'error');
-                }
-            }
-
-            displayDoviz(data) {
-                const resultElement = document.getElementById('dovizResult');
-
-                const dovizHTML = `
-                    <div class="doviz-card">
-                        <div class="doviz-header">
-                            <h3>Döviz Kurları</h3>
-                            <div class="doviz-base">
-                                Baz Döviz: ${data.base_currency.name} (${data.base_currency.symbol})
-                            </div>
-                            <div class="doviz-timestamp">
-                                ${new Date(data.timestamp).toLocaleString('tr-TR')}
-                            </div>
-                        </div>
-                        
-                        <div class="doviz-currencies">
-                            <h4>Döviz Kurları</h4>
-                            <div class="currency-grid">
-                                ${Object.values(data.currencies).map(currency => `
-                                    <div class="currency-item">
-                                        <div class="currency-header">
-                                            <span class="currency-name">${currency.name}</span>
-                                            <span class="currency-code">${currency.code}</span>
-                                        </div>
-                                        <div class="currency-rates">
-                                            <div class="rate-row">
-                                                <span>Alış:</span>
-                                                <span class="rate-value">${currency.buying.toFixed(2)} ₺</span>
-                                            </div>
-                                            <div class="rate-row">
-                                                <span>Satış:</span>
-                                                <span class="rate-value">${currency.selling.toFixed(2)} ₺</span>
-                                            </div>
-                                            <div class="rate-row">
-                                                <span>Değişim:</span>
-                                                <span class="rate-change ${currency.change >= 0 ? 'positive' : 'negative'}">
-                                                    ${currency.change >= 0 ? '+' : ''}${currency.change.toFixed(2)}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-
-                        ${data.precious_metals && Object.keys(data.precious_metals).length > 0 ? `
-                        <div class="doviz-metals">
-                            <h4>Kıymetli Madenler</h4>
-                            <div class="metal-grid">
-                                ${Object.values(data.precious_metals).map(metal => `
-                                    <div class="metal-item">
-                                        <div class="metal-header">
-                                            <span class="metal-name">${metal.name}</span>
-                                            <span class="metal-code">${metal.code}</span>
-                                        </div>
-                                        <div class="metal-rates">
-                                            <div class="rate-row">
-                                                <span>Alış:</span>
-                                                <span class="rate-value">${metal.buying.toFixed(2)} ₺</span>
-                                            </div>
-                                            <div class="rate-row">
-                                                <span>Satış:</span>
-                                                <span class="rate-value">${metal.selling.toFixed(2)} ₺</span>
-                                            </div>
-                                            <div class="rate-row">
-                                                <span>Değişim:</span>
-                                                <span class="rate-change ${metal.change >= 0 ? 'positive' : 'negative'}">
-                                                    ${metal.change >= 0 ? '+' : ''}${metal.change.toFixed(2)}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        ` : ''}
-
-                        ${data.note ? `
-                        <div class="doviz-note">
-                            <small>${data.note}</small>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-
-                resultElement.innerHTML = dovizHTML;
-                resultElement.className = 'doviz-result success';
-                resultElement.style.display = 'block';
-            }
-
-            showResult(message, type) {
-                const resultElement = document.getElementById('dovizResult');
-                resultElement.textContent = message;
-                resultElement.className = `doviz-result ${type}`;
-                resultElement.style.display = 'block';
-            }
-
-            setupEventListeners() {
-                document.getElementById('getDoviz').addEventListener('click', () => {
-                    this.getDoviz();
                 });
             }
         }
@@ -679,10 +525,9 @@ GET /api/doviz?base=usd
             });
         });
 
-        // Sayfa yüklendiğinde API'leri başlat
+        // Sayfa yüklendiğinde Weather API'yi başlat
         document.addEventListener('DOMContentLoaded', function() {
             window.weatherAPI = new WeatherAPI();
-            window.dovizAPI = new DovizAPI();
         });
     </script>
 </body>
