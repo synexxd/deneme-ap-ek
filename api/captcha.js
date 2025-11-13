@@ -1,146 +1,200 @@
-// api/captcha.js - XXXX-XXXX-XXXX formatında
-const captchaStore = new Map();
+// captcha.js - Basit Resimli CAPTCHA Sistemi
 
-export default async function handler(req, res) {
-  try {
-    if (req.method === 'GET') {
-      const { action, id, code } = req.query;
-      
-      if (action === 'verify') {
-        return verifyCaptcha(id, code, res);
-      } else {
-        return generateCaptcha(res);
-      }
-    } 
-    else if (req.method === 'POST') {
-      const { action, id, code } = req.body;
-      
-      if (action === 'verify') {
-        return verifyCaptcha(id, code, res);
-      } else {
-        return generateCaptcha(res);
-      }
-    } 
-    else {
-      return res.status(405).json({
-        status: 'error',
-        message: 'Method not allowed'
-      });
+class SimpleCaptcha {
+    constructor() {
+        this.currentCaptcha = '';
+        this.captchaLength = 6;
+        this.chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // O ve 0, I ve 1 karışmaması için
+        this.init();
     }
-  } catch (error) {
-    return res.status(500).json({
-      status: 'error',
-      message: 'Server error'
-    });
-  }
-}
 
-// CAPTCHA oluştur
-function generateCaptcha(res) {
-  const code = generateFormattedCode(); // XXXX-XXXX-XXXX formatında
-  const id = 'cap_' + Date.now().toString(36);
-  
-  captchaStore.set(id, {
-    code: code,
-    created: Date.now()
-  });
-
-  // 10 dakika sonra temizle
-  setTimeout(() => {
-    captchaStore.delete(id);
-  }, 10 * 60 * 1000);
-
-  return res.json({
-    status: 'success',
-    id: id,
-    code: code,
-    expiresIn: '10 minutes'
-  });
-}
-
-// CAPTCHA doğrula
-function verifyCaptcha(id, userCode, res) {
-  if (!id || !userCode) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'ID and code are required'
-    });
-  }
-  
-  const captcha = captchaStore.get(id);
-  
-  if (!captcha) {
-    return res.status(404).json({
-      status: 'error',
-      message: 'CAPTCHA not found or expired'
-    });
-  }
-  
-  // Büyük/küçük harf fark etmez, boşlukları ve tireleri temizle
-  const cleanUserCode = userCode.toString().toUpperCase().replace(/[-\s]/g, '');
-  const cleanStoredCode = captcha.code.toUpperCase().replace(/[-\s]/g, '');
-  
-  const isCorrect = cleanUserCode === cleanStoredCode;
-  
-  if (isCorrect) {
-    captchaStore.delete(id);
-    return res.json({
-      status: 'success',
-      message: 'CAPTCHA verified successfully',
-      verified: true
-    });
-  } else {
-    return res.json({
-      status: 'error',
-      message: 'Invalid CAPTCHA code',
-      verified: false
-    });
-  }
-}
-
-// XXXX-XXXX-XXXX formatında kod oluştur
-function generateFormattedCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // O/0 ve I/1 karışmaması için
-  let code = '';
-  
-  // 12 karakterlik kod oluştur (4+4+4)
-  for (let i = 0; i < 12; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-    // 4 ve 8. karakterlerden sonra tire ekle
-    if (i === 3 || i === 7) {
-      code += '-';
+    init() {
+        this.generateCaptcha();
+        this.setupEventListeners();
     }
-  }
-  
-  return code; // Örnek: A3B8-C2D9-E4F7
+
+    // CAPTCHA kodu oluştur
+    generateCaptcha() {
+        let captcha = '';
+        for (let i = 0; i < this.captchaLength; i++) {
+            captcha += this.chars.charAt(Math.floor(Math.random() * this.chars.length));
+        }
+        this.currentCaptcha = captcha;
+        this.renderCaptchaImage();
+        this.clearInput();
+        this.hideResult();
+        return captcha;
+    }
+
+    // CAPTCHA görselini oluştur
+    renderCaptchaImage() {
+        const canvas = document.getElementById('captchaCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Canvas'ı temizle
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Arkaplan
+        ctx.fillStyle = '#667eea';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Gürültü çizgileri
+        for (let i = 0; i < 8; i++) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.3})`;
+            ctx.lineWidth = Math.random() * 2 + 1;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+            ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+            ctx.stroke();
+        }
+        
+        // Noktalar
+        for (let i = 0; i < 50; i++) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5})`;
+            ctx.beginPath();
+            ctx.arc(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height,
+                Math.random() * 2,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+        
+        // Metin
+        ctx.font = 'bold 35px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Her karakter için farklı efekt
+        const charSpacing = 30;
+        const startX = canvas.width / 2 - ((this.captchaLength - 1) * charSpacing) / 2;
+        
+        for (let i = 0; i < this.captchaLength; i++) {
+            const char = this.currentCaptcha[i];
+            const x = startX + i * charSpacing;
+            const y = canvas.height / 2;
+            
+            // Hafif döndürme
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate((Math.random() - 0.5) * 0.4);
+            
+            // Gölge efekti
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.fillText(char, 0, 0);
+            ctx.restore();
+        }
+    }
+
+    // CAPTCHA doğrulama
+    verifyCaptcha() {
+        const userInput = document.getElementById('captchaInput').value.toUpperCase();
+        const resultElement = document.getElementById('captchaResult');
+        
+        // Giriş kontrolü
+        if (!userInput) {
+            this.showResult('⚠️ Lütfen CAPTCHA kodunu girin!', 'error');
+            return false;
+        }
+        
+        if (userInput.length !== this.captchaLength) {
+            this.showResult(`⚠️ Kod ${this.captchaLength} karakter olmalı!`, 'error');
+            return false;
+        }
+        
+        // Doğrulama
+        if (userInput === this.currentCaptcha) {
+            this.showResult('✅ CAPTCHA başarıyla doğrulandı!', 'success');
+            return true;
+        } else {
+            this.showResult('❌ CAPTCHA kodu hatalı! Lütfen tekrar deneyin.', 'error');
+            this.generateCaptcha(); // Hatalı girişte yeni CAPTCHA
+            return false;
+        }
+    }
+
+    // Sonuç mesajını göster
+    showResult(message, type) {
+        const resultElement = document.getElementById('captchaResult');
+        resultElement.textContent = message;
+        resultElement.className = `captcha-result ${type}`;
+        resultElement.style.display = 'block';
+    }
+
+    // Sonuç mesajını gizle
+    hideResult() {
+        const resultElement = document.getElementById('captchaResult');
+        resultElement.style.display = 'none';
+    }
+
+    // Input'u temizle
+    clearInput() {
+        document.getElementById('captchaInput').value = '';
+    }
+
+    // Event listener'ları kur
+    setupEventListeners() {
+        // Input'ta Enter tuşu desteği
+        document.getElementById('captchaInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.verifyCaptcha();
+            }
+        });
+        
+        // Yenile butonu
+        document.getElementById('reloadCaptcha').addEventListener('click', () => {
+            this.generateCaptcha();
+        });
+        
+        // Doğrula butonu
+        document.getElementById('verifyCaptcha').addEventListener('click', () => {
+            this.verifyCaptcha();
+        });
+        
+        // Input temizleme
+        document.getElementById('captchaInput').addEventListener('focus', () => {
+            this.hideResult();
+        });
+    }
+
+    // CAPTCHA'yı manuel olarak yenile
+    refresh() {
+        return this.generateCaptcha();
+    }
+
+    // Mevcut CAPTCHA kodunu al
+    getCurrentCaptcha() {
+        return this.currentCaptcha;
+    }
 }
 
-// Alternatif: Sayı ve harf karışık format
-function generateMixedFormattedCode() {
-  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const numbers = '23456789';
-  
-  let part1 = '';
-  let part2 = '';
-  let part3 = '';
-  
-  // İlk bölüm: 2 harf + 2 sayı
-  for (let i = 0; i < 2; i++) {
-    part1 += letters.charAt(Math.floor(Math.random() * letters.length));
-  }
-  for (let i = 0; i < 2; i++) {
-    part1 += numbers.charAt(Math.floor(Math.random() * numbers.length));
-  }
-  
-  // İkinci bölüm: 4 sayı
-  for (let i = 0; i < 4; i++) {
-    part2 += numbers.charAt(Math.floor(Math.random() * numbers.length));
-  }
-  
-  // Üçüncü bölüm: 4 harf
-  for (let i = 0; i < 4; i++) {
-    part3 += letters.charAt(Math.floor(Math.random() * letters.length));
-  }
-  
-  return `${part1}-${part2}-${part3}`; // Örnek: AB34-5678-XYZK
-}
+// Sayfa yüklendiğinde CAPTCHA'yı başlat
+document.addEventListener('DOMContentLoaded', function() {
+    window.simpleCaptcha = new SimpleCaptcha();
+});
+
+// API fonksiyonları
+window.CaptchaAPI = {
+    generate: function() {
+        return window.simpleCaptcha.generateCaptcha();
+    },
+    
+    verify: function(input) {
+        return window.simpleCaptcha.verifyCaptcha(input);
+    },
+    
+    refresh: function() {
+        return window.simpleCaptcha.refresh();
+    },
+    
+    getCurrent: function() {
+        return window.simpleCaptcha.getCurrentCaptcha();
+    }
+};
