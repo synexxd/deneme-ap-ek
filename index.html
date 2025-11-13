@@ -123,81 +123,9 @@
                     <span class="success-message" id="successDeprem">Kopyalandı!</span>
                 </div>
             </div>
-
-            <!-- 3. API Kartı: Captcha -->
-            <div class="api-card">
-                <div class="api-header">
-                    <div class="method-badge get-post">GET/POST</div>
-                    <div class="api-title">Captcha</div>
-                </div>
-
-                <div class="endpoint">/api/captcha</div>
-
-                <div class="description">
-                    7 haneli sayı CAPTCHA doğrulama sistemi
-                </div>
-
-                <div class="parameters">
-                    <div class="section-title">Generate Parameters:</div>
-                    <div class="parameter">
-                        <div class="checkbox checked">✓</div>
-                        <div class="param-name">(none)</div>
-                        <div class="param-desc">Parametre gerekmez</div>
-                    </div>
-                    
-                    <div class="section-title" style="margin-top: 15px;">Verify Parameters:</div>
-                    <div class="parameter">
-                        <div class="checkbox checked">✓</div>
-                        <div class="param-name">code</div>
-                        <div class="param-desc">7 haneli CAPTCHA kodu</div>
-                    </div>
-                </div>
-
-                <div class="response">
-                    <div class="section-title">Generate Response:</div>
-                    <div class="response-code">{
-  "status": "success",
-  "captcha_code": "4592837",
-  "image_url": "/api/captcha/image/4592837",
-  "expires_in": "10 minutes"
-}</div>
-
-                    <div class="section-title" style="margin-top: 15px;">Verify Response:</div>
-                    <div class="response-code">{
-  "status": "success",
-  "message": "CAPTCHA verified successfully",
-  "verified": true
-}</div>
-                </div>
-
-                <!-- CAPTCHA Demo Alanı -->
-                <div class="captcha-demo">
-                    <div class="section-title">Demo: 7 Haneli CAPTCHA</div>
-                    <div class="captcha-container">
-                        <canvas id="captchaCanvas" width="300" height="100"></canvas>
-                        <div class="captcha-input-group">
-                            <input type="text" id="captchaInput" class="captcha-input" placeholder="Yukarıdaki 7 haneli kodu girin" maxlength="7">
-                            <button class="captcha-btn reload" id="reloadCaptcha" title="Yeni Kod">🔄</button>
-                        </div>
-                        <div class="captcha-buttons">
-                            <button class="captcha-btn verify" id="verifyCaptcha">Doğrula</button>
-                        </div>
-                        <div id="captchaResult" class="captcha-result"></div>
-                    </div>
-                </div>
-
-                <div class="api-footer">
-                    <div class="date">08.02.2025</div>
-                    <button class="copy-btn" onclick="copyToClipboard('captcha')">
-                        Kopyala
-                    </button>
-                    <span class="success-message" id="successCaptcha">Kopyalandı!</span>
-                </div>
-            </div>
         </div>
     </div>
 
-    <script src="captcha.js"></script>
     <script>
         function copyToClipboard(type) {
             let responseCode;
@@ -232,31 +160,6 @@
       "source": "AFAD"
     }
   ]
-}`;
-            } else if (type === 'captcha') {
-                responseCode = `// 7 Haneli CAPTCHA Kullanımı
-// 1. CAPTCHA oluştur
-GET /api/captcha
-
-// Response:
-{
-  "status": "success",
-  "captcha_code": "4592837",
-  "image_url": "/api/captcha/image/4592837",
-  "expires_in": "10 minutes"
-}
-
-// 2. CAPTCHA doğrula
-POST /api/captcha/verify
-Body: {
-  "code": "4592837"
-}
-
-// Response:
-{
-  "status": "success",
-  "message": "CAPTCHA verified successfully",
-  "verified": true
 }`;
             }
             
