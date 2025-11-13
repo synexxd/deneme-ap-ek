@@ -123,9 +123,88 @@
                     <span class="success-message" id="successDeprem">Kopyalandı!</span>
                 </div>
             </div>
+
+            <!-- 3. API Kartı: Weather -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge get">GET</div>
+                    <div class="api-title">Weather</div>
+                </div>
+
+                <div class="endpoint">/api/weather</div>
+
+                <div class="description">
+                    Türkiye'deki şehirlerin güncel hava durumu bilgileri
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Parameter:</div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">city</div>
+                        <div class="param-desc">Şehir adı (örn: istanbul, ankara, izmir)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">days</div>
+                        <div class="param-desc">Tahmin gün sayısı (1-7, default: 7)</div>
+                    </div>
+                </div>
+
+                <div class="response">
+                    <div class="section-title">Dönüş:</div>
+                    <div class="response-code">{
+  "status": "success",
+  "endpoint": "/api/weather",
+  "city": "Istanbul",
+  "country": "Turkey",
+  "current": {
+    "temperature": 18,
+    "feels_like": 17,
+    "humidity": 65,
+    "pressure": 1013,
+    "wind_speed": 12,
+    "wind_direction": "NE",
+    "description": "Parçalı bulutlu",
+    "icon": "partly-cloudy",
+    "timestamp": "2024-01-15T14:30:00.000Z"
+  },
+  "forecast": [
+    {
+      "date": "2024-01-16",
+      "min_temp": 12,
+      "max_temp": 19,
+      "description": "Hafif yağmurlu",
+      "icon": "rainy"
+    }
+  ]
+}</div>
+                </div>
+
+                <!-- Weather Demo Alanı -->
+                <div class="weather-demo">
+                    <div class="section-title">Demo: Hava Durumu</div>
+                    <div class="weather-container">
+                        <div class="weather-input-group">
+                            <input type="text" id="weatherCity" class="weather-input" placeholder="Şehir adı girin (örn: istanbul)" value="istanbul">
+                            <button class="weather-btn" id="getWeather">Sorgula</button>
+                        </div>
+                        <div id="weatherResult" class="weather-result"></div>
+                    </div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button class="copy-btn" onclick="copyToClipboard('weather')">
+                        Kopyala
+                    </button>
+                    <span class="success-message" id="successWeather">Kopyalandı!</span>
+                </div>
+            </div>
         </div>
     </div>
 
+    <script src="weather.js"></script>
     <script>
         function copyToClipboard(type) {
             let responseCode;
@@ -158,6 +237,37 @@
       },
       "timestamp": "2024-01-15T14:30:00.000Z",
       "source": "AFAD"
+    }
+  ]
+}`;
+            } else if (type === 'weather') {
+                responseCode = `// Hava Durumu API Kullanımı
+GET /api/weather?city=istanbul
+
+// Response:
+{
+  "status": "success",
+  "endpoint": "/api/weather",
+  "city": "Istanbul",
+  "country": "Turkey",
+  "current": {
+    "temperature": 18,
+    "feels_like": 17,
+    "humidity": 65,
+    "pressure": 1013,
+    "wind_speed": 12,
+    "wind_direction": "NE",
+    "description": "Parçalı bulutlu",
+    "icon": "partly-cloudy",
+    "timestamp": "2024-01-15T14:30:00.000Z"
+  },
+  "forecast": [
+    {
+      "date": "2024-01-16",
+      "min_temp": 12,
+      "max_temp": 19,
+      "description": "Hafif yağmurlu",
+      "icon": "rainy"
     }
   ]
 }`;
