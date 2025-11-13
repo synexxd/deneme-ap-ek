@@ -204,8 +204,128 @@
         </div>
     </div>
 
-    <script src="weather.js"></script>
     <script>
+        // Weather API Frontend
+        class WeatherAPI {
+            constructor() {
+                this.apiBaseUrl = '/api';
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+            }
+
+            async getWeather() {
+                const cityInput = document.getElementById('weatherCity');
+                const city = cityInput.value.trim();
+                const resultElement = document.getElementById('weatherResult');
+
+                if (!city) {
+                    this.showResult('⚠️ Lütfen bir şehir adı girin!', 'error');
+                    return;
+                }
+
+                try {
+                    this.showResult('⏳ Hava durumu sorgulanıyor...', 'info');
+                    const response = await fetch(`${this.apiBaseUrl}/weather?city=${encodeURIComponent(city)}`);
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        this.displayWeather(data);
+                    } else {
+                        this.showResult(`❌ ${data.error}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Hava durumu hatası:', error);
+                    this.showResult('❌ Hava durumu bilgisi alınamadı!', 'error');
+                }
+            }
+
+            displayWeather(data) {
+                const resultElement = document.getElementById('weatherResult');
+                const formatDate = (dateString) => {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('tr-TR', { 
+                        weekday: 'short', 
+                        day: 'numeric', 
+                        month: 'short' 
+                    });
+                };
+
+                const weatherHTML = `
+                    <div class="weather-card">
+                        <div class="weather-header">
+                            <h3>${data.city}, ${data.country}</h3>
+                            <div class="weather-main">
+                                <div class="weather-temp">${data.current.temperature}°C</div>
+                                <div class="weather-desc">${data.current.description}</div>
+                                <div class="weather-feels">Hissedilen: ${data.current.feels_like}°C</div>
+                            </div>
+                        </div>
+                        <div class="weather-details">
+                            <div class="weather-detail">
+                                <span class="detail-label">Nem:</span>
+                                <span class="detail-value">${data.current.humidity}%</span>
+                            </div>
+                            <div class="weather-detail">
+                                <span class="detail-label">Rüzgar:</span>
+                                <span class="detail-value">${data.current.wind_speed} km/s ${data.current.wind_direction}</span>
+                            </div>
+                            <div class="weather-detail">
+                                <span class="detail-label">Basınç:</span>
+                                <span class="detail-value">${data.current.pressure} hPa</span>
+                            </div>
+                            <div class="weather-detail">
+                                <span class="detail-label">Yağış:</span>
+                                <span class="detail-value">${data.current.precipitation} mm</span>
+                            </div>
+                        </div>
+                        <div class="weather-forecast">
+                            <h4>7 Günlük Tahmin</h4>
+                            <div class="forecast-items">
+                                ${data.forecast.map(day => `
+                                    <div class="forecast-item">
+                                        <div class="forecast-date">${formatDate(day.date)}</div>
+                                        <div class="forecast-temp">${day.min_temp}° / ${day.max_temp}°</div>
+                                        <div class="forecast-desc">${day.description}</div>
+                                        <div class="forecast-precip">${day.precipitation} mm</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="weather-source">
+                            <small>Veri kaynağı: Open-Meteo API</small>
+                        </div>
+                    </div>
+                `;
+
+                resultElement.innerHTML = weatherHTML;
+                resultElement.className = 'weather-result success';
+                resultElement.style.display = 'block';
+            }
+
+            showResult(message, type) {
+                const resultElement = document.getElementById('weatherResult');
+                resultElement.textContent = message;
+                resultElement.className = `weather-result ${type}`;
+                resultElement.style.display = 'block';
+            }
+
+            setupEventListeners() {
+                document.getElementById('getWeather').addEventListener('click', () => {
+                    this.getWeather();
+                });
+
+                document.getElementById('weatherCity').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.getWeather();
+                    }
+                });
+            }
+        }
+
+        // Copy to clipboard function
         function copyToClipboard(type) {
             let responseCode;
             if (type === 'anime') {
@@ -295,6 +415,11 @@ GET /api/weather?city=istanbul
                     checkbox.innerHTML = '';
                 }
             });
+        });
+
+        // Sayfa yüklendiğinde Weather API'yi başlat
+        document.addEventListener('DOMContentLoaded', function() {
+            window.weatherAPI = new WeatherAPI();
         });
     </script>
 </body>
