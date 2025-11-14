@@ -14,13 +14,92 @@
         </header>
 
         <div class="api-cards">
-            <!-- Bu sayfa şu anda boş, API'ler daha sonra eklenecek -->
-            <div class="empty-state">
-                <div class="empty-icon">📋</div>
-                <h3>Yakında Yeni API'ler</h3>
-                <p>Bu sayfaya yeni API'ler yakında eklenecek.</p>
-                <p>Şimdilik 1. sayfadaki mevcut API'leri kullanabilirsiniz.</p>
-                <a href="index.html" class="back-btn">1. Sayfaya Git</a>
+            <!-- Translate API Kartı -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge post">POST</div>
+                    <div class="api-title">Translate</div>
+                </div>
+
+                <div class="endpoint">/api/translate</div>
+
+                <div class="description">
+                    Metin çeviri servisi - 100'den fazla dil desteği
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Parameter:</div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">text</div>
+                        <div class="param-desc">Çevrilecek metin</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">target</div>
+                        <div class="param-desc">Hedef dil kodu (tr, en, es, fr, de, vb.)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">source</div>
+                        <div class="param-desc">Kaynak dil kodu (auto: otomatik tespit)</div>
+                    </div>
+                </div>
+
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('translate')">
+                        <div class="section-title">Dönüş:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responseTranslate">{
+  "status": "success",
+  "endpoint": "/api/translate",
+  "original_text": "Hello world",
+  "translated_text": "Merhaba dünya",
+  "source_language": "en",
+  "target_language": "tr",
+  "translation_service": "LibreTranslate",
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}</div>
+                </div>
+
+                <!-- Translate Demo Alanı -->
+                <div class="translate-demo">
+                    <div class="section-title">Demo: Çeviri</div>
+                    <div class="translate-container">
+                        <div class="translate-input-group">
+                            <textarea id="translateText" class="translate-input" placeholder="Çevrilecek metni girin...">Hello, how are you?</textarea>
+                            <div class="language-selectors">
+                                <select id="sourceLang" class="lang-select">
+                                    <option value="auto">Auto Detect</option>
+                                    <option value="en">English</option>
+                                    <option value="tr">Türkçe</option>
+                                    <option value="es">Español</option>
+                                    <option value="fr">Français</option>
+                                    <option value="de">Deutsch</option>
+                                </select>
+                                <div class="arrow">→</div>
+                                <select id="targetLang" class="lang-select">
+                                    <option value="tr">Türkçe</option>
+                                    <option value="en">English</option>
+                                    <option value="es">Español</option>
+                                    <option value="fr">Français</option>
+                                    <option value="de">Deutsch</option>
+                                </select>
+                            </div>
+                            <button class="translate-btn" id="translateBtn">Çevir</button>
+                        </div>
+                        <div id="translateResult" class="translate-result"></div>
+                    </div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button class="copy-btn" onclick="copyToClipboard('translate')">
+                        Kopyala
+                    </button>
+                    <span class="success-message" id="successTranslate">Kopyalandı!</span>
+                </div>
             </div>
         </div>
 
@@ -54,6 +133,205 @@
                 window.location.href = 'index.html';
             }
         }
+
+        // Response bölümlerini açıp kapama
+        function toggleResponse(type) {
+            const responseElement = document.getElementById(`response${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            if (responseElement) {
+                const toggleIcon = responseElement.parentElement.querySelector('.toggle-icon');
+                
+                if (responseElement.style.display === 'none' || !responseElement.style.display) {
+                    responseElement.style.display = 'block';
+                    toggleIcon.textContent = '▲';
+                } else {
+                    responseElement.style.display = 'none';
+                    toggleIcon.textContent = '▼';
+                }
+            }
+        }
+
+        // Copy to clipboard function
+        function copyToClipboard(type) {
+            let responseCode;
+            if (type === 'translate') {
+                responseCode = `// Translate API Kullanımı
+POST /api/translate
+
+// Body:
+{
+  "text": "Hello world",
+  "target": "tr",
+  "source": "auto"
+}
+
+// Response:
+{
+  "status": "success",
+  "endpoint": "/api/translate",
+  "original_text": "Hello world",
+  "translated_text": "Merhaba dünya",
+  "source_language": "en",
+  "target_language": "tr",
+  "translation_service": "LibreTranslate",
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}`;
+            }
+            
+            navigator.clipboard.writeText(responseCode).then(() => {
+                const successMessage = document.getElementById(`success${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                if (successMessage) {
+                    successMessage.style.display = 'inline';
+                    
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 2000);
+                }
+            });
+        }
+
+        // Checkbox animasyonu
+        document.querySelectorAll('.parameter').forEach(item => {
+            item.addEventListener('click', function() {
+                const checkbox = this.querySelector('.checkbox');
+                checkbox.classList.toggle('checked');
+                
+                if (checkbox.classList.contains('checked')) {
+                    checkbox.innerHTML = '✓';
+                } else {
+                    checkbox.innerHTML = '';
+                }
+            });
+        });
+
+        // Translate API Frontend
+        class TranslateAPI {
+            constructor() {
+                this.apiBaseUrl = 'https://libretranslate.com/translate';
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+            }
+
+            async translateText() {
+                const textInput = document.getElementById('translateText');
+                const sourceLang = document.getElementById('sourceLang').value;
+                const targetLang = document.getElementById('targetLang').value;
+                const resultElement = document.getElementById('translateResult');
+
+                const text = textInput.value.trim();
+
+                if (!text) {
+                    this.showResult('⚠️ Lütfen çevrilecek metni girin!', 'error');
+                    return;
+                }
+
+                if (text.length > 1000) {
+                    this.showResult('⚠️ Metin çok uzun! Maksimum 1000 karakter.', 'error');
+                    return;
+                }
+
+                try {
+                    this.showResult('⏳ Çeviri yapılıyor...', 'info');
+
+                    const response = await fetch(this.apiBaseUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            q: text,
+                            source: sourceLang === 'auto' ? 'auto' : sourceLang,
+                            target: targetLang,
+                            format: 'text'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.translatedText) {
+                        this.displayTranslation(text, data.translatedText, sourceLang, targetLang);
+                    } else {
+                        this.showResult('❌ Çeviri yapılamadı!', 'error');
+                    }
+                } catch (error) {
+                    console.error('Çeviri hatası:', error);
+                    this.showResult('❌ Çeviri servisine ulaşılamadı!', 'error');
+                }
+            }
+
+            displayTranslation(original, translated, source, target) {
+                const resultElement = document.getElementById('translateResult');
+                
+                const translateHTML = `
+                    <div class="translation-card">
+                        <div class="translation-original">
+                            <div class="translation-label">Orijinal Metin (${this.getLanguageName(source)})</div>
+                            <div class="translation-text">${original}</div>
+                        </div>
+                        <div class="translation-result">
+                            <div class="translation-label">Çeviri (${this.getLanguageName(target)})</div>
+                            <div class="translation-text">${translated}</div>
+                        </div>
+                        <div class="translation-info">
+                            <small>Çeviri servisi: LibreTranslate</small>
+                        </div>
+                    </div>
+                `;
+
+                resultElement.innerHTML = translateHTML;
+                resultElement.className = 'translate-result success';
+                resultElement.style.display = 'block';
+            }
+
+            getLanguageName(code) {
+                const languages = {
+                    'auto': 'Otomatik',
+                    'en': 'İngilizce',
+                    'tr': 'Türkçe',
+                    'es': 'İspanyolca',
+                    'fr': 'Fransızca',
+                    'de': 'Almanca'
+                };
+                return languages[code] || code;
+            }
+
+            showResult(message, type) {
+                const resultElement = document.getElementById('translateResult');
+                resultElement.textContent = message;
+                resultElement.className = `translate-result ${type}`;
+                resultElement.style.display = 'block';
+            }
+
+            setupEventListeners() {
+                document.getElementById('translateBtn').addEventListener('click', () => {
+                    this.translateText();
+                });
+
+                // Enter tuşu ile çeviri
+                document.getElementById('translateText').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                        this.translateText();
+                    }
+                });
+            }
+        }
+
+        // Sayfa yüklendiğinde Translate API'yi başlat
+        document.addEventListener('DOMContentLoaded', function() {
+            window.translateAPI = new TranslateAPI();
+            
+            // Response bölümlerini başlangıçta kapalı yap
+            document.querySelectorAll('.response-code').forEach(element => {
+                element.style.display = 'none';
+            });
+            
+            // Tüm toggle icon'ları ayarla
+            document.querySelectorAll('.toggle-icon').forEach(icon => {
+                icon.textContent = '▼';
+            });
+        });
     </script>
 </body>
 </html>
