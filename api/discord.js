@@ -1,4 +1,4 @@
-// api/discord.js - Gerçek Discord Bot API
+// api/discord.js - Discord Bot Otomatik Bağlanma
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -11,19 +11,15 @@ export default async function handler(req, res) {
     return;
   }
 
-  try {
-    let token, channelId, guildId;
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      status: 'error',
+      message: 'Sadece POST methodu destekleniyor'
+    });
+  }
 
-    if (req.method === 'POST') {
-      token = req.body.token;
-      channelId = req.body.channel_id;
-      guildId = req.body.guild_id;
-    } else {
-      return res.status(405).json({
-        status: 'error',
-        message: 'Sadece POST methodu destekleniyor'
-      });
-    }
+  try {
+    const { token, channel_id, guild_id } = req.body;
 
     if (!token) {
       return res.status(400).json({
@@ -32,25 +28,27 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!channelId) {
+    if (!channel_id) {
       return res.status(400).json({
         status: 'error',
         message: 'Ses kanalı ID gereklidir'
       });
     }
 
-    console.log(`🤖 Discord Bot Bağlanıyor: ${channelId}`);
+    console.log(`🤖 Discord Bot Bağlanıyor: ${channel_id}`);
 
-    // Discord Voice Connection işlemi
-    const result = await connectToVoiceChannel(token, channelId, guildId);
+    // Botu ses kanalına otomatik bağla
+    const result = await connectBotToVoiceChannel(token, channel_id, guild_id);
     
     res.status(200).json({
       status: 'success',
       endpoint: '/api/discord',
       method: 'POST',
-      channel_id: channelId,
-      guild_id: guildId || 'auto',
-      result: result,
+      channel_id: channel_id,
+      guild_id: result.guild_id,
+      bot_username: result.bot_username,
+      connected: true,
+      message: 'Bot ses kanalına başarıyla bağlandı',
       timestamp: new Date().toISOString()
     });
 
@@ -58,16 +56,19 @@ export default async function handler(req, res) {
     console.error('Discord API Hatası:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Discord bağlantı hatası: ' + error.message
+      message: error.message,
+      connected: false,
+      timestamp: new Date().toISOString()
     });
   }
 }
 
-// Discord ses kanalına bağlanma
-async function connectToVoiceChannel(token, channelId, guildId) {
+// Botu ses kanalına otomatik bağlama
+async function connectBotToVoiceChannel(token, channelId, guildId) {
   const baseURL = 'https://discord.com/api/v10';
 
   // 1. Bot bilgilerini doğrula
+  console.log('🔐 Bot token doğrulanıyor...');
   const botResponse = await fetch(`${baseURL}/users/@me`, {
     headers: {
       'Authorization': `Bot ${token}`
@@ -75,13 +76,14 @@ async function connectToVoiceChannel(token, channelId, guildId) {
   });
 
   if (!botResponse.ok) {
-    throw new Error('Geçersiz bot token veya yetki yok');
+    throw new Error('Geçersiz bot token! Tokeni kontrol edin.');
   }
 
   const botData = await botResponse.json();
-  console.log(`✅ Bot Doğrulandı: ${botData.username}#${botData.discriminator}`);
+  console.log(`✅ Bot Doğrulandı: ${botData.username}`);
 
-  // 2. Kanal bilgilerini al
+  // 2. Kanal bilgilerini al ve kontrol et
+  console.log(`🔍 Kanal bilgileri alınıyor: ${channelId}`);
   const channelResponse = await fetch(`${baseURL}/channels/${channelId}`, {
     headers: {
       'Authorization': `Bot ${token}`
@@ -89,19 +91,21 @@ async function connectToVoiceChannel(token, channelId, guildId) {
   });
 
   if (!channelResponse.ok) {
-    throw new Error('Kanal bulunamadı veya erişim izni yok');
+    throw new Error('Kanal bulunamadı! Kanal ID\'sini kontrol edin.');
   }
 
   const channelData = await channelResponse.json();
   
+  // Ses kanalı kontrolü
   if (channelData.type !== 2) {
-    throw new Error('Bu kanal bir ses kanalı değil');
+    throw new Error('Bu bir ses kanalı değil! Ses kanalı ID\'si girin.');
   }
 
   const actualGuildId = guildId || channelData.guild_id;
-  console.log(`🎵 Ses Kanalı: ${channelData.name} | Sunucu: ${actualGuildId}`);
+  console.log(`🎵 Kanal: ${channelData.name} | Sunucu: ${actualGuildId}`);
 
   // 3. Botun sunucuda olup olmadığını kontrol et
+  console.log('🔍 Bot sunucu kontrolü...');
   const guildsResponse = await fetch(`${baseURL}/users/@me/guilds`, {
     headers: {
       'Authorization': `Bot ${token}`
@@ -113,11 +117,13 @@ async function connectToVoiceChannel(token, channelId, guildId) {
     const botInGuild = guilds.some(guild => guild.id === actualGuildId);
     
     if (!botInGuild) {
-      throw new Error('Bot bu sunucuda bulunmuyor. Botu sunucuya ekleyin.');
+      throw new Error('Bot bu sunucuda değil! Botu sunucuya ekleyin.');
     }
+    console.log('✅ Bot sunucuda bulundu');
   }
 
-  // 4. Voice State Update - Botu ses kanalına bağla
+  // 4. BOTU SES KANALINA BAĞLA - Voice State Update
+  console.log('🔗 Ses kanalına bağlanılıyor...');
   const voiceResponse = await fetch(`${baseURL}/guilds/${actualGuildId}/voice-states/@me`, {
     method: 'PATCH',
     headers: {
@@ -131,33 +137,28 @@ async function connectToVoiceChannel(token, channelId, guildId) {
     })
   });
 
-  if (!voiceResponse.ok) {
-    const errorText = await voiceResponse.text();
-    console.error('Voice connection error:', errorText);
-    throw new Error('Ses kanalına bağlanılamadı: ' + voiceResponse.status);
-  }
-
-  console.log(`✅ Bot ses kanalına bağlandı: ${channelData.name}`);
-
-  return {
-    success: true,
-    message: 'Bot ses kanalına başarıyla bağlandı',
-    bot: {
-      id: botData.id,
-      username: botData.username,
-      discriminator: botData.discriminator
-    },
-    channel: {
-      id: channelData.id,
-      name: channelData.name,
-      type: channelData.type
-    },
-    guild: {
-      id: actualGuildId
-    },
-    connection: {
-      status: 'connected',
-      timestamp: new Date().toISOString()
+  if (voiceResponse.ok) {
+    console.log('✅ Bot ses kanalına bağlandı!');
+    
+    return {
+      success: true,
+      bot_username: botData.username,
+      bot_id: botData.id,
+      guild_id: actualGuildId,
+      channel_name: channelData.name,
+      channel_id: channelData.id,
+      connection_status: 'connected'
+    };
+  } else {
+    const errorData = await voiceResponse.text();
+    console.error('❌ Ses bağlantı hatası:', errorData);
+    
+    if (voiceResponse.status === 403) {
+      throw new Error('Botun yetkisi yok! "Connect" ve "Speak" yetkilerini verin.');
+    } else if (voiceResponse.status === 404) {
+      throw new Error('Kanal veya sunucu bulunamadı!');
+    } else {
+      throw new Error(`Ses bağlantı hatası: ${voiceResponse.status}`);
     }
-  };
+  }
 }
