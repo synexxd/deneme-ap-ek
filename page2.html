@@ -3,76 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI - Translate API</title>
+    <title>SynexAPI - Ek API Servisleri</title>
     <link rel="stylesheet" href="style-page2.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🚀 SynexAPI</h1>
-            <p>Translate API Servisleri - Sayfa 2</p>
+            <p>Ek API servisleri - Sayfa 2</p>
         </header>
 
         <div class="api-cards">
-            <!-- Translate API Kartı -->
-            <div class="api-card">
-                <div class="api-header">
-                    <div class="method-badge post">POST</div>
-                    <div class="api-title">Translate</div>
-                </div>
-
-                <div class="endpoint">/api/translate</div>
-
-                <div class="description">
-                    MyMemory Translate servisi ile metin çevirisi - 10+ dil desteği
-                </div>
-
-                <div class="parameters">
-                    <div class="section-title">Body Parameters:</div>
-                    <div class="parameter">
-                        <div class="checkbox checked">✓</div>
-                        <div class="param-name">text</div>
-                        <div class="param-desc">Çevrilecek metin (max: 500 karakter)</div>
-                    </div>
-                    <div class="parameter">
-                        <div class="checkbox checked">✓</div>
-                        <div class="param-name">target</div>
-                        <div class="param-desc">Hedef dil kodu (tr, en, es, fr, de, vb.)</div>
-                    </div>
-                    <div class="parameter">
-                        <div class="checkbox"></div>
-                        <div class="param-name">source</div>
-                        <div class="param-desc">Kaynak dil kodu (auto: otomatik tespit)</div>
-                    </div>
-                </div>
-
-                <div class="response-section">
-                    <div class="response-header" onclick="toggleResponse('translate')">
-                        <div class="section-title">Response:</div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="response-code" id="responseTranslate">{
-  "status": "success",
-  "endpoint": "/api/translate",
-  "method": "POST",
-  "original_text": "Hello world",
-  "translated_text": "Merhaba dünya",
-  "source_language": "en",
-  "target_language": "tr",
-  "translation_service": "MyMemory Translate",
-  "character_count": 11,
-  "match": 0.85,
-  "timestamp": "2024-01-15T14:30:00.000Z"
-}</div>
-                </div>
-
-                <div class="api-footer">
-                    <div class="date">08.02.2025</div>
-                    <button class="copy-btn" onclick="copyToClipboard('translate')">
-                        Kopyala
-                    </button>
-                    <span class="success-message" id="successTranslate">Kopyalandı!</span>
-                </div>
+            <div class="empty-state">
+                <div class="empty-icon">🚧</div>
+                <h3>Yakında Yeni API'ler</h3>
+                <p>Bu sayfaya yeni API'ler yakında eklenecek.</p>
+                <p>Şimdilik 1. sayfadaki mevcut API'leri kullanabilirsiniz.</p>
             </div>
         </div>
 
@@ -94,101 +40,10 @@
     </div>
 
     <script>
-        // Sayfa yönlendirme fonksiyonu
         function goToPage(page) {
-            if (page === 1) {
-                window.location.href = 'index.html';
-            } else if (page === 2) {
-                window.location.href = 'page2.html';
-            } else if (page === 'next') {
-                window.location.href = 'page2.html';
-            } else if (page === 'prev') {
-                window.location.href = 'index.html';
-            }
+            if (page === 1) window.location.href = 'index.html';
+            else if (page === 2) window.location.href = 'page2.html';
         }
-
-        // Response bölümlerini açıp kapama
-        function toggleResponse(type) {
-            const responseElement = document.getElementById(`response${type.charAt(0).toUpperCase() + type.slice(1)}`);
-            if (responseElement) {
-                const toggleIcon = responseElement.parentElement.querySelector('.toggle-icon');
-                
-                if (responseElement.style.display === 'none' || !responseElement.style.display) {
-                    responseElement.style.display = 'block';
-                    toggleIcon.textContent = '▲';
-                } else {
-                    responseElement.style.display = 'none';
-                    toggleIcon.textContent = '▼';
-                }
-            }
-        }
-
-        // Copy to clipboard function
-        function copyToClipboard(type) {
-            let responseCode;
-            if (type === 'translate') {
-                responseCode = `// Translate API Kullanımı
-POST /api/translate
-
-// Body:
-{
-  "text": "Hello world",
-  "target": "tr",
-  "source": "auto"
-}
-
-// Response:
-{
-  "status": "success",
-  "endpoint": "/api/translate",
-  "method": "POST",
-  "original_text": "Hello world",
-  "translated_text": "Merhaba dünya",
-  "source_language": "en",
-  "target_language": "tr",
-  "translation_service": "MyMemory Translate",
-  "character_count": 11,
-  "match": 0.85,
-  "timestamp": "2024-01-15T14:30:00.000Z"
-}`;
-            }
-            
-            navigator.clipboard.writeText(responseCode).then(() => {
-                const successMessage = document.getElementById(`success${type.charAt(0).toUpperCase() + type.slice(1)}`);
-                if (successMessage) {
-                    successMessage.style.display = 'inline';
-                    
-                    setTimeout(() => {
-                        successMessage.style.display = 'none';
-                    }, 2000);
-                }
-            });
-        }
-
-        // Checkbox animasyonu
-        document.querySelectorAll('.parameter').forEach(item => {
-            item.addEventListener('click', function() {
-                const checkbox = this.querySelector('.checkbox');
-                checkbox.classList.toggle('checked');
-                
-                if (checkbox.classList.contains('checked')) {
-                    checkbox.innerHTML = '✓';
-                } else {
-                    checkbox.innerHTML = '';
-                }
-            });
-        });
-
-        // Sayfa yüklendiğinde response bölümlerini kapalı yap
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.response-code').forEach(element => {
-                element.style.display = 'none';
-            });
-            
-            document.querySelectorAll('.toggle-icon').forEach(icon => {
-                icon.textContent = '▼';
-            });
-        });
     </script>
 </body>
 </html>
