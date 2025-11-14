@@ -3,22 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI - Ek API Servisleri</title>
+    <title>SynexAPI - AI Servisleri</title>
     <link rel="stylesheet" href="style-page2.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🚀 SynexAPI</h1>
-            <p>Ek API servisleri - Sayfa 2</p>
+            <p>AI Servisleri - Sayfa 2</p>
         </header>
 
         <div class="api-cards">
-            <div class="empty-state">
-                <div class="empty-icon">🚧</div>
-                <h3>Yakında Yeni API'ler</h3>
-                <p>Bu sayfaya yeni API'ler yakında eklenecek.</p>
-                <p>Şimdilik 1. sayfadaki mevcut API'leri kullanabilirsiniz.</p>
+            <!-- Chat API Kartı -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge get">GET</div>
+                    <div class="api-title">Chat</div>
+                </div>
+
+                <div class="endpoint">/api/chat</div>
+
+                <div class="description">
+                    HercAI GPT-4 ile sohbet edin - Yapay zeka asistanı
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Query Parameters:</div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">question</div>
+                        <div class="param-desc">AI'ya sorulacak soru (max: 1000 karakter)</div>
+                    </div>
+                </div>
+
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('chat')">
+                        <div class="section-title">Response:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responseChat">{
+  "status": "success",
+  "endpoint": "/api/chat",
+  "method": "GET",
+  "question": "Merhaba, nasılsın?",
+  "reply": "Merhaba! Ben bir yapay zeka asistanıyım ve şu anda çok iyiyim, teşekkür ederim! Size nasıl yardımcı olabilirim?",
+  "model": "GPT-4",
+  "character_count": 19,
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}</div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button class="copy-btn" onclick="copyToClipboard('chat')">
+                        Kopyala
+                    </button>
+                    <span class="success-message" id="successChat">Kopyalandı!</span>
+                </div>
             </div>
         </div>
 
@@ -40,10 +81,91 @@
     </div>
 
     <script>
+        // Sayfa yönlendirme fonksiyonu
         function goToPage(page) {
-            if (page === 1) window.location.href = 'index.html';
-            else if (page === 2) window.location.href = 'page2.html';
+            if (page === 1) {
+                window.location.href = 'index.html';
+            } else if (page === 2) {
+                window.location.href = 'page2.html';
+            } else if (page === 'next') {
+                window.location.href = 'page2.html';
+            } else if (page === 'prev') {
+                window.location.href = 'index.html';
+            }
         }
+
+        // Response bölümlerini açıp kapama
+        function toggleResponse(type) {
+            const responseElement = document.getElementById(`response${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            if (responseElement) {
+                const toggleIcon = responseElement.parentElement.querySelector('.toggle-icon');
+                
+                if (responseElement.style.display === 'none' || !responseElement.style.display) {
+                    responseElement.style.display = 'block';
+                    toggleIcon.textContent = '▲';
+                } else {
+                    responseElement.style.display = 'none';
+                    toggleIcon.textContent = '▼';
+                }
+            }
+        }
+
+        // Copy to clipboard function
+        function copyToClipboard(type) {
+            let responseCode;
+            if (type === 'chat') {
+                responseCode = `// Chat API Kullanımı
+GET /api/chat?question=Merhaba, nasılsın?
+
+// Response:
+{
+  "status": "success",
+  "endpoint": "/api/chat",
+  "method": "GET",
+  "question": "Merhaba, nasılsın?",
+  "reply": "Merhaba! Ben bir yapay zeka asistanıyım ve şu anda çok iyiyim, teşekkür ederim! Size nasıl yardımcı olabilirim?",
+  "model": "GPT-4",
+  "character_count": 19,
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}`;
+            }
+            
+            navigator.clipboard.writeText(responseCode).then(() => {
+                const successMessage = document.getElementById(`success${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                if (successMessage) {
+                    successMessage.style.display = 'inline';
+                    
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 2000);
+                }
+            });
+        }
+
+        // Checkbox animasyonu
+        document.querySelectorAll('.parameter').forEach(item => {
+            item.addEventListener('click', function() {
+                const checkbox = this.querySelector('.checkbox');
+                checkbox.classList.toggle('checked');
+                
+                if (checkbox.classList.contains('checked')) {
+                    checkbox.innerHTML = '✓';
+                } else {
+                    checkbox.innerHTML = '';
+                }
+            });
+        });
+
+        // Sayfa yüklendiğinde response bölümlerini kapalı yap
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.response-code').forEach(element => {
+                element.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.toggle-icon').forEach(icon => {
+                icon.textContent = '▼';
+            });
+        });
     </script>
 </body>
 </html>
