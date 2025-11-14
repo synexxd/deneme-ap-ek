@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI - QR Code Servisleri</title>
+    <title>SynexAPI - Çeşitli API Servisleri</title>
     <link rel="stylesheet" href="style-page2.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🚀 SynexAPI</h1>
-            <p>QR Code Servisleri - Sayfa 2</p>
+            <p>Çeşitli API Servisleri - Sayfa 2</p>
         </header>
 
         <div class="api-cards">
@@ -66,6 +66,86 @@
                         Kopyala
                     </button>
                     <span class="success-message" id="successQrcode">Kopyalandı!</span>
+                </div>
+            </div>
+
+            <!-- Population API Kartı -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge get">GET</div>
+                    <div class="api-title">Population</div>
+                </div>
+
+                <div class="endpoint">/api/population</div>
+
+                <div class="description">
+                    Dünya ülkelerinin nüfus bilgileri - Gerçek zamanlı veriler
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Query Parameters:</div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">country</div>
+                        <div class="param-desc">Ülke adı ile filtreleme (örn: turkey, germany)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">limit</div>
+                        <div class="param-desc">Gösterilecek ülke sayısı (default: 50, max: 250)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">sort</div>
+                        <div class="param-desc">Sıralama (asc: artan, desc: azalan, default: desc)</div>
+                    </div>
+                </div>
+
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('population')">
+                        <div class="section-title">Response:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responsePopulation">{
+  "status": "success",
+  "endpoint": "/api/population",
+  "method": "GET",
+  "total_countries": 50,
+  "total_population": 4500000000,
+  "total_population_formatted": "4.5B",
+  "countries": [
+    {
+      "name": {
+        "common": "Turkey",
+        "official": "Republic of Turkey"
+      },
+      "population": 84339067,
+      "population_formatted": "84.3M"
+    },
+    {
+      "name": {
+        "common": "Germany", 
+        "official": "Federal Republic of Germany"
+      },
+      "population": 83240525,
+      "population_formatted": "83.2M"
+    }
+  ],
+  "filters": {
+    "country": "all",
+    "limit": 50,
+    "sort": "desc"
+  },
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}</div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button class="copy-btn" onclick="copyToClipboard('population')">
+                        Kopyala
+                    </button>
+                    <span class="success-message" id="successPopulation">Kopyalandı!</span>
                 </div>
             </div>
         </div>
@@ -146,6 +226,43 @@ Content-Type: application/json
   "character_count": 11,
   "timestamp": "2024-01-15T14:30:00.000Z",
   "note": "QR kodu görüntülemek için qr_code_url adresini kullanın"
+}`;
+            } else if (type === 'population') {
+                responseCode = `// Population API Kullanımı
+
+// Tüm ülkeler (nüfusa göre azalan):
+GET /api/population
+
+// Belirli ülke arama:
+GET /api/population?country=turkey
+
+// Limit ve sıralama:
+GET /api/population?limit=10&sort=asc
+
+// Response:
+{
+  "status": "success",
+  "endpoint": "/api/population",
+  "method": "GET",
+  "total_countries": 50,
+  "total_population": 4500000000,
+  "total_population_formatted": "4.5B",
+  "countries": [
+    {
+      "name": {
+        "common": "Turkey",
+        "official": "Republic of Turkey"
+      },
+      "population": 84339067,
+      "population_formatted": "84.3M"
+    }
+  ],
+  "filters": {
+    "country": "all",
+    "limit": 50,
+    "sort": "desc"
+  },
+  "timestamp": "2024-01-15T14:30:00.000Z"
 }`;
             }
             
