@@ -1,7 +1,15 @@
 // api/tts.js
 export default async function handler(req, res) {
   try {
-    let { text, lang = 'tr' } = req.body;
+    // req.body'yi parse et
+    let body;
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch (e) {
+      body = {};
+    }
+
+    let { text, lang = 'tr' } = body;
 
     if (req.method !== 'POST') {
       return res.status(405).json({
