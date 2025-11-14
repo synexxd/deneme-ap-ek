@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SynexAPI - Ek API Servisleri</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 SynexAPI</h1>
+            <p>Ek API servisleri - Sayfa 2</p>
+        </header>
+
+        <div class="api-cards">
+            <!-- Bu sayfa şu anda boş, API'ler daha sonra eklenecek -->
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <h3>Yakında Yeni API'ler</h3>
+                <p>Bu sayfaya yeni API'ler yakında eklenecek.</p>
+                <p>Şimdilik 1. sayfadaki mevcut API'leri kullanabilirsiniz.</p>
+            </div>
+        </div>
+
+        <!-- Sayfalama Butonları -->
+        <div class="pagination">
+            <button class="page-btn prev" onclick="goToPage('prev')">
+                ←
+            </button>
+            <button class="page-btn page-1" onclick="goToPage(1)">
+                1
+            </button>
+            <button class="page-btn page-2 active" onclick="goToPage(2)">
+                2
+            </button>
+            <button class="page-btn next" onclick="goToPage('next')" disabled>
+                →
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Sayfa yönlendirme fonksiyonu
+        function goToPage(page) {
+            if (page === 1) {
+                window.location.href = 'index.html';
+            } else if (page === 2) {
+                window.location.href = 'page2.html';
+            } else if (page === 'next') {
+                window.location.href = 'page2.html';
+            } else if (page === 'prev') {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Response bölümlerini açıp kapama
+        function toggleResponse(type) {
+            const responseElement = document.getElementById(`response${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            if (responseElement) {
+                const toggleIcon = responseElement.parentElement.querySelector('.toggle-icon');
+                
+                if (responseElement.style.display === 'none' || !responseElement.style.display) {
+                    responseElement.style.display = 'block';
+                    toggleIcon.textContent = '▲';
+                } else {
+                    responseElement.style.display = 'none';
+                    toggleIcon.textContent = '▼';
+                }
+            }
+        }
+
+        // Copy to clipboard function
+        function copyToClipboard(type) {
+            let responseCode;
+            // Burada 2. sayfa API'leri için kopyalama fonksiyonları eklenecek
+            // Şimdilik boş
+            
+            navigator.clipboard.writeText(responseCode).then(() => {
+                const successMessage = document.getElementById(`success${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                if (successMessage) {
+                    successMessage.style.display = 'inline';
+                    
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 2000);
+                }
+            });
+        }
+
+        // Checkbox animasyonu
+        document.querySelectorAll('.parameter').forEach(item => {
+            item.addEventListener('click', function() {
+                const checkbox = this.querySelector('.checkbox');
+                checkbox.classList.toggle('checked');
+                
+                if (checkbox.classList.contains('checked')) {
+                    checkbox.innerHTML = '✓';
+                } else {
+                    checkbox.innerHTML = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
