@@ -148,6 +148,82 @@
                     <span class="success-message" id="successPopulation">Kopyalandı!</span>
                 </div>
             </div>
+
+            <!-- IP Info API Kartı -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge get">GET</div>
+                    <div class="api-title">IP Info</div>
+                </div>
+
+                <div class="endpoint">/api/ipinfo</div>
+
+                <div class="description">
+                    IP adresi detay bilgileri - Gerçek zamanlı lokasyon ve ISP bilgileri
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Query Parameters:</div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">ip</div>
+                        <div class="param-desc">IP adresi (örn: 79.127.184.108, boş bırakılırsa sizin IP'niz)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">lang</div>
+                        <div class="param-desc">Dil kodu (tr, en, de, fr, default: tr)</div>
+                    </div>
+                </div>
+
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('ipinfo')">
+                        <div class="section-title">Response:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responseIpinfo">{
+  "status": "success",
+  "endpoint": "/api/ipinfo",
+  "method": "GET",
+  "query_ip": "79.127.184.108",
+  "data": {
+    "ip": "79.127.184.108",
+    "location": {
+      "country": "Turkey",
+      "country_code": "TR",
+      "region": "34",
+      "region_name": "Istanbul",
+      "city": "Istanbul",
+      "zip": "34000",
+      "lat": 41.0082,
+      "lon": 28.9784,
+      "timezone": "Europe/Istanbul"
+    },
+    "isp": {
+      "as": "AS9121 Turk Telekom",
+      "isp": "Turk Telekom",
+      "org": "Turk Telekom"
+    },
+    "network": {
+      "asname": "TTNET-AS-TR-TURKTELECOM-9121"
+    },
+    "mobile": false,
+    "proxy": false,
+    "hosting": false,
+    "status": "success"
+  },
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}</div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button class="copy-btn" onclick="copyToClipboard('ipinfo')">
+                        Kopyala
+                    </button>
+                    <span class="success-message" id="successIpinfo">Kopyalandı!</span>
+                </div>
+            </div>
         </div>
 
         <!-- Sayfalama Butonları -->
@@ -261,6 +337,52 @@ GET /api/population?limit=10&sort=asc
     "country": "all",
     "limit": 50,
     "sort": "desc"
+  },
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}`;
+            } else if (type === 'ipinfo') {
+                responseCode = `// IP Info API Kullanımı
+
+// Belirli bir IP için:
+GET /api/ipinfo?ip=79.127.184.108
+
+// Kendi IP'niz için:
+GET /api/ipinfo
+
+// Farklı dilde:
+GET /api/ipinfo?ip=79.127.184.108&lang=en
+
+// Response:
+{
+  "status": "success",
+  "endpoint": "/api/ipinfo",
+  "method": "GET",
+  "query_ip": "79.127.184.108",
+  "data": {
+    "ip": "79.127.184.108",
+    "location": {
+      "country": "Turkey",
+      "country_code": "TR",
+      "region": "34",
+      "region_name": "Istanbul",
+      "city": "Istanbul",
+      "zip": "34000",
+      "lat": 41.0082,
+      "lon": 28.9784,
+      "timezone": "Europe/Istanbul"
+    },
+    "isp": {
+      "as": "AS9121 Turk Telekom",
+      "isp": "Turk Telekom",
+      "org": "Turk Telekom"
+    },
+    "network": {
+      "asname": "TTNET-AS-TR-TURKTELECOM-9121"
+    },
+    "mobile": false,
+    "proxy": false,
+    "hosting": false,
+    "status": "success"
   },
   "timestamp": "2024-01-15T14:30:00.000Z"
 }`;
