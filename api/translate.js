@@ -20,13 +20,7 @@ const SUPPORTED_LANGUAGES = {
     'zh': 'Chinese',
     'ja': 'Japanese',
     'ko': 'Korean',
-    'ar': 'Arabic',
-    'nl': 'Dutch',
-    'pl': 'Polish',
-    'sv': 'Swedish',
-    'da': 'Danish',
-    'fi': 'Finnish',
-    'no': 'Norwegian'
+    'ar': 'Arabic'
 };
 
 // CORS middleware
@@ -134,77 +128,6 @@ router.post('/translate', async (req, res) => {
             });
         }
     }
-});
-
-// GET /api/translate/languages - Desteklenen diller
-router.get('/translate/languages', (req, res) => {
-    res.json({
-        status: 'success',
-        endpoint: '/api/translate/languages',
-        method: 'GET',
-        languages: SUPPORTED_LANGUAGES,
-        total_languages: Object.keys(SUPPORTED_LANGUAGES).length,
-        timestamp: new Date().toISOString()
-    });
-});
-
-// GET /api/translate/health - Sağlık kontrolü
-router.get('/translate/health', async (req, res) => {
-    try {
-        const response = await axios.get(MYMEMORY_URL, {
-            params: {
-                q: 'hello',
-                langpair: 'en|tr',
-                de: 'synexapi@example.com'
-            },
-            timeout: 5000
-        });
-
-        if (response.data.responseStatus === 200) {
-            res.json({
-                status: 'success',
-                message: 'Translate API çalışıyor',
-                service: 'MyMemory Translate',
-                endpoint: '/api/translate/health',
-                method: 'GET',
-                timestamp: new Date().toISOString()
-            });
-        } else {
-            res.status(503).json({
-                status: 'error',
-                message: 'Translate API hatalı yanıt veriyor',
-                service: 'MyMemory Translate',
-                endpoint: '/api/translate/health',
-                method: 'GET',
-                timestamp: new Date().toISOString()
-            });
-        }
-    } catch (error) {
-        res.status(503).json({
-            status: 'error',
-            message: 'Translate API çalışmıyor',
-            service: 'MyMemory Translate',
-            endpoint: '/api/translate/health',
-            method: 'GET',
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-// GET /api/translate/usage - Kullanım bilgileri
-router.get('/translate/usage', (req, res) => {
-    res.json({
-        status: 'success',
-        endpoint: '/api/translate/usage',
-        method: 'GET',
-        limits: {
-            max_text_length: 500,
-            supported_languages: Object.keys(SUPPORTED_LANGUAGES).length,
-            rate_limit: '100 requests/hour',
-            service: 'MyMemory Translate'
-        },
-        timestamp: new Date().toISOString()
-    });
 });
 
 module.exports = router;
