@@ -1,6 +1,9 @@
-// api/discord.js - Discord.js v14 uyumlu
+// api/discord.js - Bot süresiz kanalda kalsın
 import { Client, GatewayIntentBits } from 'discord.js';
-import { joinVoiceChannel } from '@discordjs/voice';
+import { joinVoiceChannel, createAudioPlayer, createAudioResource } from '@discordjs/voice';
+
+// Aktif botları sakla
+const activeBots = new Map();
 
 export default async function handler(req, res) {
   // CORS headers
@@ -44,7 +47,20 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🤖 Bot aktif ediliyor...`);
+    console.log(`🤖 Bot aktif ediliyor (süresiz)...`);
+
+    // Eğer bu token zaten aktifse, önceki bağlantıyı kes
+    if (activeBots.has(token)) {
+      console.log('♻️ Önceki bot bağlantısı temizleniyor...');
+      const oldBot = activeBots.get(token);
+      if (oldBot.voiceConnection) {
+        oldBot.voiceConnection.destroy();
+      }
+      if (oldBot.client) {
+        oldBot.client.destroy();
+      }
+      activeBots.delete(token);
+    }
 
     // Botu başlat ve kanala bağlan
     const result = await startBotAndConnect(token, channelId);
@@ -56,7 +72,8 @@ export default async function handler(req, res) {
       channel_id: channelId,
       bot_username: result.botUsername,
       connected: true,
-      message: 'Bot aktif edildi ve ses kanalına bağlandı! 🎵',
+      message: 'Bot aktif edildi ve ses kanalına süresiz bağlandı! 🎵',
+      persistent: true,
       timestamp: new Date().toISOString()
     });
 
@@ -71,7 +88,7 @@ export default async function handler(req, res) {
   }
 }
 
-// Botu başlat ve kanala bağlan
+// Botu başlat ve kanala süresiz bağlan
 async function startBotAndConnect(token, channelId) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -80,12 +97,12 @@ async function startBotAndConnect(token, channelId) {
         intents: [
           GatewayIntentBits.Guilds,
           GatewayIntentBits.GuildVoiceStates,
-          GatewayIntentBits.GuildMessages,
-          GatewayIntentBits.MessageContent
+          GatewayIntentBits.GuildMessages
         ]
       });
 
       let voiceConnection = null;
+      let audioPlayer = null;
 
       // Bot ready olduğunda
       client.once('ready', async () => {
@@ -107,43 +124,66 @@ async function startBotAndConnect(token, channelId) {
 
           console.log(`🎵 Kanal bulundu: ${channel.name}`);
 
-          // SES KANALINA BAĞLAN - Discord.js v14 yöntemi
+          // SES KANALINA BAĞLAN - Süresiz
           voiceConnection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guild.id,
             adapterCreator: channel.guild.voiceAdapterCreator,
-            selfDeaf: false,
-            selfMute: false
+            selfDeaf: true, // Bot kendini sağır yapsın
+            selfMute: true  // Bot kendini sessiz yapsın (sadece bağlı kalsın)
           });
 
-          console.log(`🔗 Ses kanalına bağlanıldı: ${channel.name}`);
+          console.log(`🔗 Bot ses kanalına SÜRESİZ bağlandı: ${channel.name}`);
+
+          // Audio player oluştur (bağlantıyı aktif tutmak için)
+          audioPlayer = createAudioPlayer();
+          voiceConnection.subscribe(audioPlayer);
 
           // Bağlantı event'leri
           voiceConnection.on('stateChange', (oldState, newState) => {
             console.log(`🔊 Ses durumu: ${oldState.status} -> ${newState.status}`);
+            
+            // Eğer bağlantı kesilirse yeniden bağlanmayı dene
+            if (newState.status === 'disconnected') {
+              console.log('⚠️ Bağlantı kesildi, yeniden bağlanılıyor...');
+              setTimeout(() => {
+                if (channel && channel.guild) {
+                  voiceConnection = joinVoiceChannel({
+                    channelId: channel.id,
+                    guildId: channel.guild.id,
+                    adapterCreator: channel.guild.voiceAdapterCreator,
+                    selfDeaf: true,
+                    selfMute: true
+                  });
+                  voiceConnection.subscribe(audioPlayer);
+                }
+              }, 5000);
+            }
           });
 
           voiceConnection.on('error', (error) => {
             console.error('❌ Ses bağlantı hatası:', error);
           });
 
+          // Aktif botları kaydet
+          activeBots.set(token, {
+            client: client,
+            voiceConnection: voiceConnection,
+            audioPlayer: audioPlayer,
+            channel: channel,
+            connectedAt: new Date()
+          });
+
+          console.log(`💾 Bot aktif botlar listesine kaydedildi: ${client.user.tag}`);
+
           // Başarılı sonuç
           resolve({
             botUsername: client.user.tag,
             channelName: channel.name,
             guildName: channel.guild.name,
-            connected: true
+            connected: true,
+            persistent: true
           });
-
-          // 25 saniye sonra bağlantıyı kes
-          setTimeout(() => {
-            if (voiceConnection) {
-              voiceConnection.destroy();
-              console.log('🔌 Ses bağlantısı kesildi');
-            }
-            client.destroy();
-            console.log('🔌 Bot bağlantısı kesildi');
-          }, 25000);
 
         } catch (channelError) {
           console.error('Kanal hatası:', channelError);
@@ -155,7 +195,11 @@ async function startBotAndConnect(token, channelId) {
       // Hata durumları
       client.on('error', (error) => {
         console.error('❌ Bot hatası:', error);
-        reject(new Error(`Bot hatası: ${error.message}`));
+      });
+
+      // Client destroy olduğunda
+      client.on('disconnect', () => {
+        console.log('🔌 Bot bağlantısı kesildi');
       });
 
       // Botu login et
@@ -165,5 +209,25 @@ async function startBotAndConnect(token, channelId) {
       console.error('Login hatası:', loginError);
       reject(new Error(`Bot giriş hatası: ${loginError.message}`));
     }
+  });
+}
+
+// Aktif botları listeleme endpoint'i (opsiyonel)
+export async function getActiveBots(req, res) {
+  const bots = [];
+  
+  activeBots.forEach((bot, token) => {
+    bots.push({
+      botUsername: bot.client.user?.tag,
+      channelName: bot.channel?.name,
+      connectedAt: bot.connectedAt,
+      token: token.substring(0, 10) + '...' // Tokeni gizle
+    });
+  });
+  
+  res.json({
+    status: 'success',
+    active_bots: bots,
+    total: bots.length
   });
 }
