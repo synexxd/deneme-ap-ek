@@ -13,7 +13,6 @@ export default async function handler(req, res) {
       text = body.text;
       lang = body.lang || 'tr';
     } else {
-      // GET isteğini de destekle ama POST'a yönlendir
       text = req.query.text;
       lang = req.query.lang || 'tr';
     }
@@ -32,13 +31,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // Google TTS'den ses dosyasını al
+    // Google TTS'den sesi al
     const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(text)}`;
     
     const response = await fetch(ttsUrl);
     
     if (!response.ok) {
-      throw new Error('Ses dosyası alınamadı');
+      throw new Error('Ses alınamadı');
     }
 
     const audioBuffer = await response.arrayBuffer();
@@ -46,8 +45,8 @@ export default async function handler(req, res) {
     // Video olarak döndür
     res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Content-Disposition', `inline; filename="tts_${Date.now()}.mp4"`);
-    res.setHeader('Cache-Control', 'public, max-age=3600');
     
+    // Ses dosyasını direkt video olarak döndür
     res.send(Buffer.from(audioBuffer));
 
   } catch (error) {
