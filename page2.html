@@ -3,62 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI - AI Servisleri</title>
+    <title>SynexAPI - QR Code Servisleri</title>
     <link rel="stylesheet" href="style-page2.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🚀 SynexAPI</h1>
-            <p>AI Servisleri - Sayfa 2</p>
+            <p>QR Code Servisleri - Sayfa 2</p>
         </header>
 
         <div class="api-cards">
-            <!-- Chat API Kartı -->
+            <!-- QR Code API Kartı -->
             <div class="api-card">
                 <div class="api-header">
                     <div class="method-badge get">GET</div>
-                    <div class="api-title">Chat</div>
+                    <div class="method-badge post">POST</div>
+                    <div class="api-title">QR Code</div>
                 </div>
 
-                <div class="endpoint">/api/chat</div>
+                <div class="endpoint">/api/qrcode</div>
 
                 <div class="description">
-                    HercAI GPT-4 ile sohbet edin - Yapay zeka asistanı
+                    Metin, URL veya herhangi bir veriyi QR koda dönüştürme - GET ve POST desteği
                 </div>
 
                 <div class="parameters">
-                    <div class="section-title">Query Parameters:</div>
+                    <div class="section-title">Parameters:</div>
                     <div class="parameter">
                         <div class="checkbox checked">✓</div>
-                        <div class="param-name">question</div>
-                        <div class="param-desc">AI'ya sorulacak soru (max: 1000 karakter)</div>
+                        <div class="param-name">data</div>
+                        <div class="param-desc">QR koda dönüştürülecek metin/URL (max: 1000 karakter)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">size</div>
+                        <div class="param-desc">QR boyutu (örn: 150x150, 200x200, default: 150x150)</div>
                     </div>
                 </div>
 
                 <div class="response-section">
-                    <div class="response-header" onclick="toggleResponse('chat')">
+                    <div class="response-header" onclick="toggleResponse('qrcode')">
                         <div class="section-title">Response:</div>
                         <div class="toggle-icon">▼</div>
                     </div>
-                    <div class="response-code" id="responseChat">{
+                    <div class="response-code" id="responseQrcode">{
   "status": "success",
-  "endpoint": "/api/chat",
-  "method": "GET",
-  "question": "Merhaba, nasılsın?",
-  "reply": "Merhaba! Ben bir yapay zeka asistanıyım ve şu anda çok iyiyim, teşekkür ederim! Size nasıl yardımcı olabilirim?",
-  "model": "GPT-4",
-  "character_count": 19,
-  "timestamp": "2024-01-15T14:30:00.000Z"
+  "endpoint": "/api/qrcode",
+  "method": "GET/POST",
+  "qr_code_url": "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Hello%20World",
+  "data": "Hello World",
+  "size": "150x150",
+  "character_count": 11,
+  "timestamp": "2024-01-15T14:30:00.000Z",
+  "note": "QR kodu görüntülemek için qr_code_url adresini kullanın"
 }</div>
                 </div>
 
                 <div class="api-footer">
                     <div class="date">08.02.2025</div>
-                    <button class="copy-btn" onclick="copyToClipboard('chat')">
+                    <button class="copy-btn" onclick="copyToClipboard('qrcode')">
                         Kopyala
                     </button>
-                    <span class="success-message" id="successChat">Kopyalandı!</span>
+                    <span class="success-message" id="successQrcode">Kopyalandı!</span>
                 </div>
             </div>
         </div>
@@ -113,20 +120,32 @@
         // Copy to clipboard function
         function copyToClipboard(type) {
             let responseCode;
-            if (type === 'chat') {
-                responseCode = `// Chat API Kullanımı
-GET /api/chat?question=Merhaba, nasılsın?
+            if (type === 'qrcode') {
+                responseCode = `// QR Code API Kullanımı
+
+// GET Method:
+GET /api/qrcode?data=Hello%20World&size=150x150
+
+// POST Method:
+POST /api/qrcode
+Content-Type: application/json
+
+{
+  "data": "Hello World",
+  "size": "150x150"
+}
 
 // Response:
 {
   "status": "success",
-  "endpoint": "/api/chat",
-  "method": "GET",
-  "question": "Merhaba, nasılsın?",
-  "reply": "Merhaba! Ben bir yapay zeka asistanıyım ve şu anda çok iyiyim, teşekkür ederim! Size nasıl yardımcı olabilirim?",
-  "model": "GPT-4",
-  "character_count": 19,
-  "timestamp": "2024-01-15T14:30:00.000Z"
+  "endpoint": "/api/qrcode",
+  "method": "GET/POST",
+  "qr_code_url": "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Hello%20World",
+  "data": "Hello World",
+  "size": "150x150",
+  "character_count": 11,
+  "timestamp": "2024-01-15T14:30:00.000Z",
+  "note": "QR kodu görüntülemek için qr_code_url adresini kullanın"
 }`;
             }
             
