@@ -529,3 +529,25 @@ header p {
         font-size: 0.9rem;
     }
 }
+/* Boş Sayfa Stili */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    color: #374151;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.empty-state p {
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
