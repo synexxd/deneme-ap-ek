@@ -1,3 +1,4 @@
+/* Genel Stiller */
 * {
     margin: 0;
     padding: 0;
@@ -16,6 +17,7 @@ body {
     margin: 0 auto;
 }
 
+/* Header Stilleri */
 header {
     text-align: center;
     margin-bottom: 40px;
@@ -33,31 +35,22 @@ header p {
     opacity: 0.9;
 }
 
+/* API Kartları Grid */
 .api-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 30px;
-    margin-top: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
 }
 
+/* API Kartı Stilleri */
 .api-card {
     background: white;
     border-radius: 15px;
     padding: 25px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.api-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+    border: 1px solid rgba(255,255,255,0.2);
 }
 
 .api-card:hover {
@@ -81,73 +74,73 @@ header p {
     text-transform: uppercase;
 }
 
-.method-badge.post {
-    background: #ff6b6b;
+.method-badge.get {
+    background: #10b981;
 }
 
-.method-badge.get {
-    background: #4ecdc4;
+.method-badge.post {
+    background: #3b82f6;
 }
 
 .api-title {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: bold;
-    color: #2c3e50;
+    color: #1f2937;
 }
 
 .endpoint {
-    background: #f8f9fa;
-    padding: 12px 15px;
-    border-radius: 8px;
     font-family: 'Courier New', monospace;
-    color: #e83e8c;
-    font-weight: bold;
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
     margin-bottom: 15px;
-    border-left: 4px solid #4ecdc4;
-}
-
-.description {
-    color: #6c757d;
-    margin-bottom: 20px;
-    line-height: 1.5;
+    border-left: 4px solid #3b82f6;
+    color: #374151;
     font-size: 0.95rem;
 }
 
+.description {
+    color: #6b7280;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* Parametreler Bölümü */
+.parameters {
+    margin-bottom: 20px;
+}
+
 .section-title {
-    font-weight: bold;
-    color: #2c3e50;
-    margin-bottom: 10px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.parameters {
-    margin-bottom: 20px;
-}
-
 .parameter {
     display: flex;
     align-items: center;
-    gap: 10px;
     padding: 8px 0;
-    border-bottom: 1px solid #f1f3f4;
+    border-bottom: 1px solid #f3f4f6;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background 0.2s ease;
 }
 
 .parameter:hover {
-    background-color: #f8f9fa;
-    border-radius: 5px;
-    padding-left: 10px;
-    padding-right: 10px;
+    background: #f9fafb;
+    border-radius: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 .checkbox {
     width: 20px;
     height: 20px;
-    border: 2px solid #ddd;
+    border: 2px solid #d1d5db;
     border-radius: 4px;
+    margin-right: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -157,24 +150,25 @@ header p {
 }
 
 .checkbox.checked {
-    background: #4ecdc4;
-    border-color: #4ecdc4;
+    background: #10b981;
+    border-color: #10b981;
 }
 
 .param-name {
     font-family: 'Courier New', monospace;
-    font-weight: bold;
-    color: #2c3e50;
-    min-width: 100px;
+    font-weight: 600;
+    color: #1f2937;
+    min-width: 80px;
+    margin-right: 15px;
 }
 
 .param-desc {
-    color: #6c757d;
+    color: #6b7280;
     font-size: 0.9rem;
     flex: 1;
 }
 
-/* Response Section Styles */
+/* Response Bölümü */
 .response-section {
     margin-bottom: 20px;
 }
@@ -183,94 +177,41 @@ header p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
     cursor: pointer;
-    border-bottom: 1px solid #e9ecef;
-    transition: background-color 0.2s ease;
-}
-
-.response-header:hover {
-    background-color: #f8f9fa;
-    border-radius: 5px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .toggle-icon {
-    font-size: 0.8rem;
-    color: #6c757d;
     transition: transform 0.3s ease;
+    color: #6b7280;
 }
 
 .response-code {
-    background: #2c3e50;
-    color: #f8f9fa;
-    padding: 15px;
+    background: #1f2937;
+    color: #e5e7eb;
+    padding: 20px;
     border-radius: 8px;
+    margin-top: 10px;
     font-family: 'Courier New', monospace;
     font-size: 0.85rem;
-    line-height: 1.4;
+    line-height: 1.5;
     overflow-x: auto;
     white-space: pre-wrap;
-    border: 1px solid #34495e;
-    margin-top: 10px;
-    max-height: 400px;
-    overflow-y: auto;
     display: none;
 }
 
-.api-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #f1f3f4;
-}
-
-.date {
-    color: #6c757d;
-    font-size: 0.85rem;
-}
-
-.copy-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.copy-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.success-message {
-    color: #28a745;
-    font-weight: bold;
-    font-size: 0.9rem;
-    display: none;
-}
-
-/* Weather Demo Styles */
+/* Weather Demo Stilleri */
 .weather-demo {
-    margin-top: 20px;
+    margin: 20px 0;
     padding: 20px;
     background: #f8f9fa;
     border-radius: 10px;
-    border: 2px dashed #dee2e6;
+    border-left: 4px solid #3b82f6;
 }
 
 .weather-container {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-top: 15px;
 }
 
 .weather-input-group {
@@ -282,7 +223,7 @@ header p {
 .weather-input {
     flex: 1;
     padding: 12px 15px;
-    border: 2px solid #e9ecef;
+    border: 2px solid #e5e7eb;
     border-radius: 8px;
     font-size: 1rem;
     transition: border-color 0.3s ease;
@@ -290,69 +231,61 @@ header p {
 
 .weather-input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #3b82f6;
 }
 
 .weather-btn {
     padding: 12px 20px;
-    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    background: #3b82f6;
     color: white;
     border: none;
     border-radius: 8px;
-    font-weight: bold;
+    font-size: 1rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background 0.3s ease;
 }
 
 .weather-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    background: #2563eb;
 }
 
 .weather-result {
-    margin-top: 15px;
-    padding: 0;
-    border-radius: 8px;
     display: none;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-size: 0.9rem;
 }
 
 .weather-result.info {
-    background: #cce7ff;
-    color: #004085;
-    border: 1px solid #b3d7ff;
-    padding: 12px;
-    text-align: center;
+    background: #dbeafe;
+    color: #1e40af;
+    border-left: 4px solid #3b82f6;
 }
 
 .weather-result.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-    padding: 12px;
-    text-align: center;
+    background: #fee2e2;
+    color: #dc2626;
+    border-left: 4px solid #ef4444;
 }
 
 .weather-result.success {
-    display: block;
     background: transparent;
     border: none;
     padding: 0;
 }
 
-/* Weather Card Styles */
 .weather-card {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
+    background: white;
     border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 .weather-header h3 {
-    margin: 0 0 15px 0;
-    font-size: 1.4rem;
-    text-align: center;
+    color: #1f2937;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
 }
 
 .weather-main {
@@ -363,18 +296,19 @@ header p {
 .weather-temp {
     font-size: 3rem;
     font-weight: bold;
+    color: #3b82f6;
     margin-bottom: 5px;
 }
 
 .weather-desc {
     font-size: 1.2rem;
-    opacity: 0.9;
+    color: #6b7280;
     margin-bottom: 5px;
 }
 
 .weather-feels {
-    font-size: 1rem;
-    opacity: 0.8;
+    color: #9ca3af;
+    font-size: 0.9rem;
 }
 
 .weather-details {
@@ -387,332 +321,211 @@ header p {
 .weather-detail {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     padding: 10px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
 }
 
 .detail-label {
-    font-size: 0.9rem;
-    opacity: 0.8;
+    color: #6b7280;
+    font-weight: 500;
 }
 
 .detail-value {
-    font-weight: bold;
-    font-size: 1rem;
-}
-
-.weather-forecast {
-    border-top: 1px solid rgba(255,255,255,0.3);
-    padding-top: 15px;
+    color: #1f2937;
+    font-weight: 600;
 }
 
 .weather-forecast h4 {
-    margin: 0 0 15px 0;
-    text-align: center;
+    color: #1f2937;
+    margin-bottom: 15px;
     font-size: 1.1rem;
 }
 
 .forecast-items {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
 }
 
 .forecast-item {
-    text-align: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 10px;
     padding: 10px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-}
-
-.forecast-date {
-    font-weight: bold;
-    margin-bottom: 5px;
+    background: #f8f9fa;
+    border-radius: 6px;
     font-size: 0.9rem;
 }
 
+.forecast-date {
+    color: #3b82f6;
+    font-weight: 600;
+}
+
 .forecast-temp {
-    font-size: 1rem;
-    font-weight: bold;
-    margin-bottom: 3px;
+    color: #1f2937;
+    font-weight: 500;
 }
 
 .forecast-desc {
-    font-size: 0.8rem;
-    opacity: 0.9;
-    margin-bottom: 3px;
+    color: #6b7280;
 }
 
 .forecast-precip {
-    font-size: 0.7rem;
-    opacity: 0.8;
+    color: #3b82f6;
+    text-align: right;
+    font-weight: 500;
 }
 
 .weather-source {
     text-align: center;
     margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255,255,255,0.3);
-    opacity: 0.7;
+    color: #9ca3af;
     font-size: 0.8rem;
 }
 
-/* Döviz Demo Styles */
-.doviz-demo {
-    margin-top: 20px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 10px;
-    border: 2px dashed #dee2e6;
-}
-
-.doviz-container {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.doviz-input-group {
+/* API Footer */
+.api-footer {
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e5e7eb;
 }
 
-.doviz-select {
-    flex: 1;
-    padding: 12px 15px;
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    font-size: 1rem;
-    background: white;
-    transition: border-color 0.3s ease;
+.date {
+    color: #9ca3af;
+    font-size: 0.85rem;
 }
 
-.doviz-select:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.doviz-btn {
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+.copy-btn {
+    background: #3b82f6;
     color: white;
     border: none;
-    border-radius: 8px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.3s ease;
+}
+
+.copy-btn:hover {
+    background: #2563eb;
+}
+
+.success-message {
+    color: #10b981;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: none;
+}
+
+/* Sayfalama Stilleri */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 40px 0 20px;
+    gap: 15px;
+}
+
+.page-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    background: transparent;
+    color: #3b82f6;
+    font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
-.doviz-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-}
-
-.doviz-result {
-    margin-top: 15px;
-    padding: 0;
-    border-radius: 8px;
-    display: none;
-}
-
-.doviz-result.info {
-    background: #cce7ff;
-    color: #004085;
-    border: 1px solid #b3d7ff;
-    padding: 12px;
-    text-align: center;
-}
-
-.doviz-result.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-    padding: 12px;
-    text-align: center;
-}
-
-.doviz-result.success {
-    display: block;
-    background: transparent;
-    border: none;
-    padding: 0;
-}
-
-/* Döviz Card Styles */
-.doviz-card {
-    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+.page-btn:hover:not(.disabled) {
+    background: #3b82f6;
     color: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.doviz-header {
-    text-align: center;
-    margin-bottom: 20px;
+.page-btn.active {
+    background: #3b82f6;
+    color: white;
 }
 
-.doviz-header h3 {
-    margin: 0 0 10px 0;
-    font-size: 1.4rem;
+.page-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #9ca3af;
+    color: #9ca3af;
 }
 
-.doviz-base {
-    font-size: 1rem;
-    opacity: 0.9;
-    margin-bottom: 5px;
+.page-btn.disabled:hover {
+    background: transparent;
+    color: #9ca3af;
+    transform: none;
+    box-shadow: none;
 }
 
-.doviz-timestamp {
-    font-size: 0.8rem;
-    opacity: 0.7;
-}
-
-.doviz-currencies, .doviz-metals {
-    margin-bottom: 20px;
-}
-
-.doviz-currencies h4, .doviz-metals h4 {
-    margin: 0 0 15px 0;
-    text-align: center;
-    font-size: 1.1rem;
-    border-bottom: 1px solid rgba(255,255,255,0.3);
-    padding-bottom: 8px;
-}
-
-.currency-grid, .metal-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-}
-
-.currency-item, .metal-item {
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    padding: 15px;
-    text-align: center;
-}
-
-.currency-header, .metal-header {
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
-}
-
-.currency-name, .metal-name {
-    display: block;
-    font-weight: bold;
-    font-size: 1rem;
-    margin-bottom: 3px;
-}
-
-.currency-code, .metal-code {
-    font-size: 0.8rem;
-    opacity: 0.8;
-}
-
-.currency-rates, .metal-rates {
-    text-align: left;
-}
-
-.rate-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 5px;
-    font-size: 0.9rem;
-}
-
-.rate-value {
-    font-weight: bold;
-}
-
-.rate-change {
-    font-weight: bold;
-    font-size: 0.8rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.rate-change.positive {
-    background: rgba(76, 175, 80, 0.3);
-    color: #4caf50;
-}
-
-.rate-change.negative {
-    background: rgba(244, 67, 54, 0.3);
-    color: #f44336;
-}
-
-.doviz-note {
-    text-align: center;
-    margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255,255,255,0.3);
-    opacity: 0.7;
-    font-size: 0.8rem;
-}
-
-/* Responsive */
+/* Responsive Tasarım */
 @media (max-width: 768px) {
     .api-cards {
         grid-template-columns: 1fr;
     }
     
     header h1 {
-        font-size: 2rem;
-    }
-    
-    .api-card {
-        padding: 20px;
-    }
-    
-    .weather-input-group, .doviz-input-group {
-        flex-direction: column;
+        font-size: 2.5rem;
     }
     
     .weather-details {
         grid-template-columns: 1fr;
     }
     
-    .forecast-items {
-        grid-template-columns: repeat(2, 1fr);
+    .forecast-item {
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
     }
     
-    .currency-grid, .metal-grid {
-        grid-template-columns: 1fr;
+    .pagination {
+        gap: 10px;
     }
     
-    .response-code {
-        font-size: 0.75rem;
-        padding: 10px;
+    .page-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 1rem;
     }
 }
 
 @media (max-width: 480px) {
-    .forecast-items {
-        grid-template-columns: 1fr;
-    }
-    
-    .weather-card, .doviz-card {
-        padding: 15px;
-    }
-    
-    .weather-temp {
-        font-size: 2.5rem;
+    body {
+        padding: 10px;
     }
     
     .api-card {
-        padding: 15px;
+        padding: 20px;
     }
     
-    .endpoint {
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .api-title {
+        font-size: 1.2rem;
+    }
+    
+    .pagination {
+        gap: 8px;
+    }
+    
+    .page-btn {
+        width: 40px;
+        height: 40px;
         font-size: 0.9rem;
-        padding: 10px 12px;
     }
 }
