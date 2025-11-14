@@ -1,22 +1,23 @@
 // api/tts.js
 export default async function handler(req, res) {
   try {
-    // req.body'yi parse et
-    let body;
-    try {
-      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    } catch (e) {
-      body = {};
-    }
-
-    let { text, lang = 'tr' } = body;
-
+    // req.body kontrolü
     if (req.method !== 'POST') {
       return res.status(405).json({
         status: 'error',
         message: 'Sadece POST methodu destekleniyor'
       });
     }
+
+    let body;
+    try {
+      body = JSON.parse(req.body);
+    } catch {
+      body = req.body || {};
+    }
+
+    const text = body.text;
+    const lang = body.lang || 'tr';
 
     if (!text) {
       return res.status(400).json({
