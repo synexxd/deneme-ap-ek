@@ -5,7 +5,7 @@ module.exports = async (req, res) => {
     // CORS headers
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
     res.setHeader(
         'Access-Control-Allow-Headers',
         'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
@@ -17,24 +17,37 @@ module.exports = async (req, res) => {
         return;
     }
 
-    // Sadece GET methodunu kabul et
-    if (req.method !== 'GET') {
+    // Sadece GET ve POST methodunu kabul et
+    if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({
             status: 'error',
-            message: 'Method not allowed. Use GET.',
+            message: 'Method not allowed. Use GET or POST.',
             endpoint: '/api/qrcode'
         });
     }
 
     try {
-        const { data, size = '150x150' } = req.query;
+        let data, size;
+
+        // GET isteği için query parametrelerini al
+        if (req.method === 'GET') {
+            data = req.query.data;
+            size = req.query.size || '150x150';
+        }
+        // POST isteği için body'den al
+        else if (req.method === 'POST') {
+            const body = req.body;
+            data = body.data;
+            size = body.size || '150x150';
+        }
 
         // Validasyon
         if (!data) {
             return res.status(400).json({
                 status: 'error',
                 message: 'data parametresi zorunludur',
-                endpoint: '/api/qrcode'
+                endpoint: '/api/qrcode',
+                method: req.method
             });
         }
 
@@ -42,7 +55,8 @@ module.exports = async (req, res) => {
             return res.status(400).json({
                 status: 'error',
                 message: 'Data çok uzun! Maksimum 1000 karakter.',
-                endpoint: '/api/qrcode'
+                endpoint: '/api/qrcode',
+                method: req.method
             });
         }
 
@@ -52,17 +66,19 @@ module.exports = async (req, res) => {
             return res.status(400).json({
                 status: 'error',
                 message: 'Geçersiz size formatı. Örnek: 150x150',
-                endpoint: '/api/qrcode'
+                endpoint: '/api/qrcode',
+                method: req.method
             });
         }
 
-        // QR Code API'ye yönlendirme veya direkt URL döndürme
+        // QR Code API URL'ini oluştur
         const qrCodeUrl = `${QRCODE_BASE_URL}?size=${size}&data=${encodeURIComponent(data)}`;
 
+        // Başarılı yanıt
         res.json({
             status: 'success',
             endpoint: '/api/qrcode',
-            method: 'GET',
+            method: req.method,
             qr_code_url: qrCodeUrl,
             data: data,
             size: size,
@@ -78,6 +94,7 @@ module.exports = async (req, res) => {
             status: 'error',
             message: 'QR Code oluşturulurken hata oluştu',
             endpoint: '/api/qrcode',
+            method: req.method,
             timestamp: new Date().toISOString()
         });
     }
