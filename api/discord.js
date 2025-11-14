@@ -1,4 +1,4 @@
-// api/discord.js - Discord Bot Otomatik Bağlanma
+// api/discord.js - GET ve POST desteği
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -11,15 +11,23 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      status: 'error',
-      message: 'Sadece POST methodu destekleniyor'
-    });
-  }
-
   try {
-    const { token, channel_id, guild_id } = req.body;
+    let token, channelId, guildId;
+
+    if (req.method === 'GET') {
+      token = req.query.token;
+      channelId = req.query.channel_id;
+      guildId = req.query.guild_id;
+    } else if (req.method === 'POST') {
+      token = req.body.token;
+      channelId = req.body.channel_id;
+      guildId = req.body.guild_id;
+    } else {
+      return res.status(405).json({
+        status: 'error',
+        message: 'Sadece GET ve POST methodu destekleniyor'
+      });
+    }
 
     if (!token) {
       return res.status(400).json({
@@ -28,23 +36,23 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!channel_id) {
+    if (!channelId) {
       return res.status(400).json({
         status: 'error',
         message: 'Ses kanalı ID gereklidir'
       });
     }
 
-    console.log(`🤖 Discord Bot Bağlanıyor: ${channel_id}`);
+    console.log(`🤖 Discord Bot Bağlanıyor: ${channelId}`);
 
     // Botu ses kanalına otomatik bağla
-    const result = await connectBotToVoiceChannel(token, channel_id, guild_id);
+    const result = await connectBotToVoiceChannel(token, channelId, guildId);
     
     res.status(200).json({
       status: 'success',
       endpoint: '/api/discord',
-      method: 'POST',
-      channel_id: channel_id,
+      method: req.method,
+      channel_id: channelId,
       guild_id: result.guild_id,
       bot_username: result.bot_username,
       connected: true,
@@ -63,7 +71,7 @@ export default async function handler(req, res) {
   }
 }
 
-// Botu ses kanalına otomatik bağlama
+// Botu ses kanalına otomatik bağlama (aynı fonksiyon)
 async function connectBotToVoiceChannel(token, channelId, guildId) {
   const baseURL = 'https://discord.com/api/v10';
 
