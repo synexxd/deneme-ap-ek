@@ -244,7 +244,7 @@
   "base_currency": {
     "name": "Amerikan Doları",
     "symbol": "$",
-    "code": "URL"
+    "code": "USD"
   },
   "timestamp": "2024-01-15T14:30:00.000Z",
   "currencies": {
@@ -286,75 +286,36 @@
 
         <!-- Sayfalama Butonları -->
         <div class="pagination">
-            <button class="page-btn prev" onclick="changePage('prev')" disabled>
+            <button class="page-btn prev" onclick="goToPage('prev')" disabled>
                 ←
             </button>
-            <button class="page-btn page-1 active" onclick="changePage(1)">
+            <button class="page-btn page-1 active" onclick="goToPage(1)">
                 1
             </button>
-            <button class="page-btn page-2" onclick="changePage(2)">
+            <button class="page-btn page-2" onclick="goToPage(2)">
                 2
             </button>
-            <button class="page-btn next" onclick="changePage('next')">
+            <button class="page-btn next" onclick="goToPage('next')">
                 →
             </button>
         </div>
     </div>
 
     <script>
-        // Sayfalama sistemi
-        let currentPage = 1;
-        const totalPages = 2;
-
-        function changePage(page) {
-            // Önceki ve sonraki butonları için
-            if (page === 'prev' && currentPage > 1) {
-                currentPage--;
-            } else if (page === 'next' && currentPage < totalPages) {
-                currentPage++;
-            } else if (typeof page === 'number') {
-                currentPage = page;
+        // Sayfa yönlendirme fonksiyonu
+        function goToPage(page) {
+            if (page === 1) {
+                window.location.href = 'index.html';
+            } else if (page === 2) {
+                window.location.href = 'page2.html';
+            } else if (page === 'next') {
+                window.location.href = 'page2.html';
+            } else if (page === 'prev') {
+                window.location.href = 'index.html';
             }
-
-            // Buton durumlarını güncelle
-            updatePaginationButtons();
-            
-            // Sayfa içeriğini güncelle
-            updatePageContent();
         }
 
-        function updatePaginationButtons() {
-            const prevBtn = document.querySelector('.page-btn.prev');
-            const nextBtn = document.querySelector('.page-btn.next');
-            const page1Btn = document.querySelector('.page-btn.page-1');
-            const page2Btn = document.querySelector('.page-btn.page-2');
-
-            // Önceki ve sonraki butonlarını güncelle
-            prevBtn.disabled = currentPage === 1;
-            nextBtn.disabled = currentPage === totalPages;
-
-            // Sayfa butonlarını güncelle
-            page1Btn.classList.toggle('active', currentPage === 1);
-            page2Btn.classList.toggle('active', currentPage === 2);
-        }
-
-        function updatePageContent() {
-            // Burada sayfa içeriğini güncelleyebilirsiniz
-            // Örneğin: API kartlarını değiştirme, yeni API'leri yükleme vb.
-            console.log(`Sayfa ${currentPage} yüklendi`);
-            
-            // Sayfa başlığını güncelle
-            const header = document.querySelector('header p');
-            if (currentPage === 1) {
-                header.textContent = 'Çeşitli API servisleri';
-            } else {
-                header.textContent = 'Ek API servisleri - Sayfa 2';
-            }
-            
-            // Burada 2. sayfa için yeni API kartlarını yükleyebilirsiniz
-            // Örnek: loadPage2APIs();
-        }
-
+        // Mevcut JavaScript kodunuz buraya gelecek
         // Response bölümlerini açıp kapama
         function toggleResponse(type) {
             const responseElement = document.getElementById(`response${type.charAt(0).toUpperCase() + type.slice(1)}`);
@@ -381,9 +342,25 @@
                 icon.textContent = '▼';
             });
 
-            // Sayfalama butonlarını başlat
-            updatePaginationButtons();
+            // Mevcut sayfayı aktif yap
+            const currentPage = window.location.pathname.includes('page2.html') ? 2 : 1;
+            updatePaginationButtons(currentPage);
         });
+
+        function updatePaginationButtons(currentPage) {
+            const prevBtn = document.querySelector('.page-btn.prev');
+            const nextBtn = document.querySelector('.page-btn.next');
+            const page1Btn = document.querySelector('.page-btn.page-1');
+            const page2Btn = document.querySelector('.page-btn.page-2');
+
+            // Önceki ve sonraki butonlarını güncelle
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === 2;
+
+            // Sayfa butonlarını güncelle
+            page1Btn.classList.toggle('active', currentPage === 1);
+            page2Btn.classList.toggle('active', currentPage === 2);
+        }
 
         // Weather API Frontend
         class WeatherAPI {
@@ -456,10 +433,6 @@
                                 <span class="detail-label">Basınç:</span>
                                 <span class="detail-value">${data.current.pressure} hPa</span>
                             </div>
-                            <div class="weather-detail">
-                                <span class="detail-label">Yağış:</span>
-                                <span class="detail-value">${data.current.precipitation} mm</span>
-                            </div>
                         </div>
                         <div class="weather-forecast">
                             <h4>7 Günlük Tahmin</h4>
@@ -469,7 +442,6 @@
                                         <div class="forecast-date">${formatDate(day.date)}</div>
                                         <div class="forecast-temp">${day.min_temp}° / ${day.max_temp}°</div>
                                         <div class="forecast-desc">${day.description}</div>
-                                        <div class="forecast-precip">${day.precipitation} mm</div>
                                     </div>
                                 `).join('')}
                             </div>
