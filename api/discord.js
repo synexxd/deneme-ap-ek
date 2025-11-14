@@ -1,8 +1,7 @@
-// api/discord.js - clientReady event ile
+// api/discord.js - DAHA GÜÇLÜ SÜREKLİ BAĞLANTI
 import { Client, GatewayIntentBits } from 'discord.js';
-import { joinVoiceChannel } from '@discordjs/voice';
+import { joinVoiceChannel, getVoiceConnection } from '@discordjs/voice';
 
-// Aktif botları sakla
 const activeBots = new Map();
 
 export default async function handler(req, res) {
@@ -47,10 +46,18 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🤖 Bot aktif ediliyor (SONSUZ)...`);
+    console.log(`🤖 BOT AKTİF EDİLİYOR - ASLA DÜŞMEYECEK!`);
 
-    // Botu başlat ve kanala sonsuz bağlan
-    const result = await startInfiniteBot(token, channelId);
+    // Eski bot varsa temizle
+    if (activeBots.has(token)) {
+      const oldBot = activeBots.get(token);
+      if (oldBot.voiceConnection) oldBot.voiceConnection.destroy();
+      if (oldBot.client) oldBot.client.destroy();
+      activeBots.delete(token);
+    }
+
+    // YENİ BOTU BAŞLAT
+    const result = await startSuperBot(token, channelId);
     
     res.status(200).json({
       status: 'success',
@@ -59,13 +66,13 @@ export default async function handler(req, res) {
       channel_id: channelId,
       bot_username: result.botUsername,
       connected: true,
-      message: 'Bot aktif edildi ve ses kanalına SONSUZ bağlandı! 🔄',
-      infinite: true,
+      message: 'Bot aktif! ASLA sesten düşmeyecek! 💪',
+      super_persistent: true,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('Discord Bot Hatası:', error);
+    console.error('Bot Hatası:', error);
     res.status(500).json({
       status: 'error',
       message: error.message,
@@ -75,8 +82,8 @@ export default async function handler(req, res) {
   }
 }
 
-// Sonsuz döngü ile botu başlat
-async function startInfiniteBot(token, channelId) {
+// SÜPER BOT - ASLA DÜŞMEZ
+async function startSuperBot(token, channelId) {
   return new Promise(async (resolve, reject) => {
     try {
       const client = new Client({
@@ -86,54 +93,55 @@ async function startInfiniteBot(token, channelId) {
         ]
       });
 
-      // clientReady event'i kullan (ready değil)
-      client.once('clientReady', async (c) => {
-        console.log(`✅ Bot giriş yaptı: ${c.user.tag}`);
+      // BOT HAZIR OLUNCA
+      client.once('ready', async (c) => {
+        console.log(`✅ BOT HAZIR: ${c.user.tag}`);
         
-        // Sonsuz bağlantı döngüsünü başlat
-        startInfiniteConnection(client, channelId, token);
+        // SÜREKLİ BAĞLANTIYI BAŞLAT
+        startSuperConnection(client, channelId, token);
         
         resolve({
           botUsername: c.user.tag,
           connected: true,
-          infinite: true
+          super_persistent: true
         });
       });
 
-      // Hata durumları
       client.on('error', (error) => {
         console.error('❌ Bot hatası:', error);
       });
 
-      // Botu login et
       await client.login(token);
       
-    } catch (loginError) {
-      reject(new Error(`Bot giriş hatası: ${loginError.message}`));
+    } catch (error) {
+      reject(new Error(`Bot başlatma hatası: ${error.message}`));
     }
   });
 }
 
-// SONSÜZ BAĞLANTI DÖNGÜSÜ
-async function startInfiniteConnection(client, channelId, token) {
-  let voiceConnection = null;
-  let isConnected = false;
+// SÜPER BAĞLANTI - ASLA DÜŞMEZ
+async function startSuperConnection(client, channelId, token) {
+  let connectionAttempts = 0;
+  const MAX_ATTEMPTS = 1000; // ÇOK YÜKSEK SAYI
   
-  const infiniteLoop = async () => {
+  const superLoop = async () => {
     try {
-      // Kanalı bul
+      connectionAttempts++;
+      console.log(`🔄 Bağlantı denemesi: ${connectionAttempts}`);
+      
+      // Kanalı al
       const channel = await client.channels.fetch(channelId);
       
       if (!channel || channel.type !== 2) {
         console.log('⏳ Kanal bekleniyor...');
-        setTimeout(infiniteLoop, 5000);
+        setTimeout(superLoop, 2000); // 2 saniye
         return;
       }
 
       console.log(`🎵 Kanal bulundu: ${channel.name}`);
 
-      // SES KANALINA BAĞLAN
-      voiceConnection = joinVoiceChannel({
+      // SES BAĞLANTISI KUR
+      const voiceConnection = joinVoiceChannel({
         channelId: channel.id,
         guildId: channel.guild.id,
         adapterCreator: channel.guild.voiceAdapterCreator,
@@ -141,82 +149,82 @@ async function startInfiniteConnection(client, channelId, token) {
         selfMute: true
       });
 
-      console.log(`🔗 Bot ses kanalına bağlandı: ${channel.name}`);
-      isConnected = true;
+      console.log(`🔗 BOT KANALDA!: ${channel.name}`);
 
-      // Bağlantı event'leri
+      // BAĞLANTI EVENT'LERİ
       voiceConnection.on('stateChange', (oldState, newState) => {
-        console.log(`🔊 Ses durumu: ${oldState.status} -> ${newState.status}`);
+        console.log(`🔊 Durum: ${oldState.status} -> ${newState.status}`);
         
-        // BAĞLANTI KESİLİRSE HEMEN YENİDEN BAĞLAN
-        if (newState.status === 'disconnected' && isConnected) {
-          console.log('🔄 Bağlantı kesildi, YENİDEN BAĞLANIYOR...');
-          isConnected = false;
+        // EĞER BAĞLANTI KOPARSA HEMEN YENİDEN BAĞLAN!
+        if (newState.status === 'disconnected') {
+          console.log('🚨 BAĞLANTI KOPTU! HEMEN YENİDEN BAĞLANIYOR...');
           
+          // Hemen yok et ve yeniden başlat
           setTimeout(() => {
-            if (voiceConnection) {
-              voiceConnection.destroy();
-            }
-            infiniteLoop();
-          }, 1000);
+            voiceConnection.destroy();
+            superLoop(); // Hemen yeniden başlat
+          }, 500); // 0.5 SANİYE!
         }
       });
 
       voiceConnection.on('error', (error) => {
-        console.error('❌ Ses bağlantı hatası:', error);
-        isConnected = false;
+        console.error('❌ Bağlantı hatası:', error);
         
+        // HATA OLURSA HEMEN YENİDEN DENE
         setTimeout(() => {
-          if (voiceConnection) {
-            voiceConnection.destroy();
-          }
-          infiniteLoop();
-        }, 3000);
+          voiceConnection.destroy();
+          superLoop();
+        }, 1000);
       });
 
-      // Aktif botları kaydet
+      // AKTİF BOTLARA KAYDET
       activeBots.set(token, {
         client: client,
         voiceConnection: voiceConnection,
         channel: channel,
         connectedAt: new Date(),
-        infinite: true
+        connectionAttempts: connectionAttempts
       });
 
-    } catch (error) {
-      console.error('❌ Bağlantı hatası:', error);
-      isConnected = false;
-      
-      setTimeout(() => {
-        if (voiceConnection) {
+      // HER 10 SANİYEDE BİR BAĞLANTIYI KONTROL ET
+      const healthCheck = setInterval(() => {
+        if (voiceConnection.state.status === 'disconnected') {
+          console.log('🚨 SAĞLIK KONTROLÜ: Bağlantı kopmuş! Yeniden bağlanılıyor...');
+          clearInterval(healthCheck);
           voiceConnection.destroy();
+          superLoop();
+        } else {
+          console.log('💚 Sağlık kontrolü: Bot hala kanalda!');
         }
-        infiniteLoop();
-      }, 5000);
+      }, 10000); // 10 saniye
+
+    } catch (error) {
+      console.error('❌ Süper döngü hatası:', error);
+      
+      // HATA OLURSA 3 SANİYE SONRA TEKRAR DENE
+      setTimeout(() => {
+        superLoop();
+      }, 3000);
     }
   };
 
-  // SONSÜZ DÖNGÜYÜ BAŞLAT
-  console.log('🔄 SONSÜZ BAĞLANTI DÖNGÜSÜ BAŞLATILDI!');
-  infiniteLoop();
+  // SÜPER DÖNGÜYÜ BAŞLAT
+  console.log('🚀 SÜPER BAĞLANTI DÖNGÜSÜ BAŞLATILDI!');
+  superLoop();
 }
 
-// Ping sistemi
-function startPingSystem() {
-  setInterval(() => {
-    activeBots.forEach((bot, token) => {
-      if (bot.voiceConnection && bot.channel) {
-        console.log(`🏓 Ping: ${bot.client.user?.tag} hala kanalda`);
-        
-        if (bot.voiceConnection.state.status === 'disconnected') {
-          console.log(`🔄 ${bot.client.user?.tag} bağlantısı kesildi, yeniden bağlanılıyor...`);
-          bot.voiceConnection.destroy();
-          startInfiniteConnection(bot.client, bot.channel.id, token);
-        }
+// SÜREKLİ PİNG SİSTEMİ
+setInterval(() => {
+  activeBots.forEach((bot, token) => {
+    if (bot.voiceConnection) {
+      const status = bot.voiceConnection.state.status;
+      console.log(`🏓 PING: ${bot.client.user?.tag} - Durum: ${status}`);
+      
+      if (status === 'disconnected') {
+        console.log(`🚨 ${bot.client.user?.tag} DÜŞTÜ! Yeniden bağlanılıyor...`);
+        bot.voiceConnection.destroy();
+        startSuperConnection(bot.client, bot.channel.id, token);
       }
-    });
-  }, 30000);
-}
-
-// Ping sistemini başlat
-startPingSystem();
+    }
+  });
+}, 15000); // 15 saniye
