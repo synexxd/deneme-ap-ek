@@ -1,23 +1,27 @@
 // api/tts.js
 export default async function handler(req, res) {
   try {
-    // req.body kontrolü
-    if (req.method !== 'POST') {
+    let text, lang;
+
+    // GET ve POST desteği
+    if (req.method === 'GET') {
+      text = req.query.text;
+      lang = req.query.lang || 'tr';
+    } else if (req.method === 'POST') {
+      let body;
+      try {
+        body = JSON.parse(req.body);
+      } catch {
+        body = req.body || {};
+      }
+      text = body.text;
+      lang = body.lang || 'tr';
+    } else {
       return res.status(405).json({
         status: 'error',
-        message: 'Sadece POST methodu destekleniyor'
+        message: 'Sadece GET ve POST methodu destekleniyor'
       });
     }
-
-    let body;
-    try {
-      body = JSON.parse(req.body);
-    } catch {
-      body = req.body || {};
-    }
-
-    const text = body.text;
-    const lang = body.lang || 'tr';
 
     if (!text) {
       return res.status(400).json({
@@ -40,7 +44,7 @@ export default async function handler(req, res) {
     res.json({
       status: 'success',
       endpoint: '/api/tts',
-      method: 'POST',
+      method: req.method,
       input_text: text,
       language: lang,
       audio_url: ttsUrl,
