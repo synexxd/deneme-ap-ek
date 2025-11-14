@@ -1,6 +1,6 @@
-// api/discord.js - Sonsuz döngü ile asla çıkmayan bot
+// api/discord.js - clientReady event ile
 import { Client, GatewayIntentBits } from 'discord.js';
-import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } from '@discordjs/voice';
+import { joinVoiceChannel } from '@discordjs/voice';
 
 // Aktif botları sakla
 const activeBots = new Map();
@@ -86,19 +86,15 @@ async function startInfiniteBot(token, channelId) {
         ]
       });
 
-      let voiceConnection = null;
-      let reconnectAttempts = 0;
-      const maxReconnectAttempts = 10;
-
-      // Bot ready olduğunda
-      client.once('ready', async () => {
-        console.log(`✅ Bot giriş yaptı: ${client.user.tag}`);
+      // clientReady event'i kullan (ready değil)
+      client.once('clientReady', async (c) => {
+        console.log(`✅ Bot giriş yaptı: ${c.user.tag}`);
         
         // Sonsuz bağlantı döngüsünü başlat
         startInfiniteConnection(client, channelId, token);
         
         resolve({
-          botUsername: client.user.tag,
+          botUsername: c.user.tag,
           connected: true,
           infinite: true
         });
@@ -130,7 +126,7 @@ async function startInfiniteConnection(client, channelId, token) {
       
       if (!channel || channel.type !== 2) {
         console.log('⏳ Kanal bekleniyor...');
-        setTimeout(infiniteLoop, 5000); // 5 saniye sonra tekrar dene
+        setTimeout(infiniteLoop, 5000);
         return;
       }
 
@@ -157,12 +153,11 @@ async function startInfiniteConnection(client, channelId, token) {
           console.log('🔄 Bağlantı kesildi, YENİDEN BAĞLANIYOR...');
           isConnected = false;
           
-          // Hemen yeniden bağlan
           setTimeout(() => {
             if (voiceConnection) {
               voiceConnection.destroy();
             }
-            infiniteLoop(); // Döngüyü yeniden başlat
+            infiniteLoop();
           }, 1000);
         }
       });
@@ -171,7 +166,6 @@ async function startInfiniteConnection(client, channelId, token) {
         console.error('❌ Ses bağlantı hatası:', error);
         isConnected = false;
         
-        // Hata olursa yeniden bağlan
         setTimeout(() => {
           if (voiceConnection) {
             voiceConnection.destroy();
@@ -193,7 +187,6 @@ async function startInfiniteConnection(client, channelId, token) {
       console.error('❌ Bağlantı hatası:', error);
       isConnected = false;
       
-      // Hata olursa 5 saniye sonra tekrar dene
       setTimeout(() => {
         if (voiceConnection) {
           voiceConnection.destroy();
@@ -208,32 +201,22 @@ async function startInfiniteConnection(client, channelId, token) {
   infiniteLoop();
 }
 
-// Bot durumunu kontrol etme endpoint'i
-export async function getBotStatus(req, res) {
-  const { token } = req.query;
-  
-  if (!token) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Token gereklidir'
+// Ping sistemi
+function startPingSystem() {
+  setInterval(() => {
+    activeBots.forEach((bot, token) => {
+      if (bot.voiceConnection && bot.channel) {
+        console.log(`🏓 Ping: ${bot.client.user?.tag} hala kanalda`);
+        
+        if (bot.voiceConnection.state.status === 'disconnected') {
+          console.log(`🔄 ${bot.client.user?.tag} bağlantısı kesildi, yeniden bağlanılıyor...`);
+          bot.voiceConnection.destroy();
+          startInfiniteConnection(bot.client, bot.channel.id, token);
+        }
+      }
     });
-  }
-
-  if (activeBots.has(token)) {
-    const bot = activeBots.get(token);
-    res.json({
-      status: 'success',
-      connected: true,
-      bot_username: bot.client.user?.tag,
-      channel_name: bot.channel?.name,
-      connected_at: bot.connectedAt,
-      infinite: true
-    });
-  } else {
-    res.json({
-      status: 'error',
-      connected: false,
-      message: 'Bot bulunamadı'
-    });
-  }
+  }, 30000);
 }
+
+// Ping sistemini başlat
+startPingSystem();
