@@ -1,8 +1,9 @@
-// api/discord.js - DAHA GÜÇLÜ SÜREKLİ BAĞLANTI
+// api/discord.js - CRON ile sürekli aktif
 import { Client, GatewayIntentBits } from 'discord.js';
-import { joinVoiceChannel, getVoiceConnection } from '@discordjs/voice';
+import { joinVoiceChannel } from '@discordjs/voice';
 
-const activeBots = new Map();
+// Bot konfigürasyonları
+const botConfigs = new Map();
 
 export default async function handler(req, res) {
   // CORS headers
@@ -46,28 +47,28 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🤖 BOT AKTİF EDİLİYOR - ASLA DÜŞMEYECEK!`);
+    console.log(`🤖 BOT KAYDI OLUŞTURULUYOR: ${channelId}`);
 
-    // Eski bot varsa temizle
-    if (activeBots.has(token)) {
-      const oldBot = activeBots.get(token);
-      if (oldBot.voiceConnection) oldBot.voiceConnection.destroy();
-      if (oldBot.client) oldBot.client.destroy();
-      activeBots.delete(token);
-    }
+    // Bot konfigürasyonunu kaydet
+    botConfigs.set(token, {
+      channelId: channelId,
+      token: token,
+      lastConnection: new Date(),
+      active: true
+    });
 
-    // YENİ BOTU BAŞLAT
-    const result = await startSuperBot(token, channelId);
+    // Hemen bağlan
+    await connectBot(token, channelId);
     
     res.status(200).json({
       status: 'success',
       endpoint: '/api/discord',
       method: req.method,
       channel_id: channelId,
-      bot_username: result.botUsername,
       connected: true,
-      message: 'Bot aktif! ASLA sesten düşmeyecek! 💪',
-      super_persistent: true,
+      message: 'Bot kaydedildi! Her 5 dakikada bir otomatik bağlanacak! ⚡',
+      auto_reconnect: true,
+      reconnect_interval: '5 minutes',
       timestamp: new Date().toISOString()
     });
 
@@ -82,149 +83,112 @@ export default async function handler(req, res) {
   }
 }
 
-// SÜPER BOT - ASLA DÜŞMEZ
-async function startSuperBot(token, channelId) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const client = new Client({
-        intents: [
-          GatewayIntentBits.Guilds,
-          GatewayIntentBits.GuildVoiceStates
-        ]
-      });
+// Bot bağlantısı
+async function connectBot(token, channelId) {
+  try {
+    const client = new Client({
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildVoiceStates
+      ]
+    });
 
-      // BOT HAZIR OLUNCA
-      client.once('ready', async (c) => {
-        console.log(`✅ BOT HAZIR: ${c.user.tag}`);
-        
-        // SÜREKLİ BAĞLANTIYI BAŞLAT
-        startSuperConnection(client, channelId, token);
-        
-        resolve({
-          botUsername: c.user.tag,
-          connected: true,
-          super_persistent: true
-        });
-      });
-
-      client.on('error', (error) => {
-        console.error('❌ Bot hatası:', error);
-      });
-
-      await client.login(token);
+    client.once('ready', async (c) => {
+      console.log(`✅ BOT BAĞLANDI: ${c.user.tag}`);
       
-    } catch (error) {
-      reject(new Error(`Bot başlatma hatası: ${error.message}`));
-    }
-  });
-}
-
-// SÜPER BAĞLANTI - ASLA DÜŞMEZ
-async function startSuperConnection(client, channelId, token) {
-  let connectionAttempts = 0;
-  const MAX_ATTEMPTS = 1000; // ÇOK YÜKSEK SAYI
-  
-  const superLoop = async () => {
-    try {
-      connectionAttempts++;
-      console.log(`🔄 Bağlantı denemesi: ${connectionAttempts}`);
-      
-      // Kanalı al
-      const channel = await client.channels.fetch(channelId);
-      
-      if (!channel || channel.type !== 2) {
-        console.log('⏳ Kanal bekleniyor...');
-        setTimeout(superLoop, 2000); // 2 saniye
-        return;
-      }
-
-      console.log(`🎵 Kanal bulundu: ${channel.name}`);
-
-      // SES BAĞLANTISI KUR
-      const voiceConnection = joinVoiceChannel({
-        channelId: channel.id,
-        guildId: channel.guild.id,
-        adapterCreator: channel.guild.voiceAdapterCreator,
-        selfDeaf: true,
-        selfMute: true
-      });
-
-      console.log(`🔗 BOT KANALDA!: ${channel.name}`);
-
-      // BAĞLANTI EVENT'LERİ
-      voiceConnection.on('stateChange', (oldState, newState) => {
-        console.log(`🔊 Durum: ${oldState.status} -> ${newState.status}`);
+      try {
+        const channel = await client.channels.fetch(channelId);
         
-        // EĞER BAĞLANTI KOPARSA HEMEN YENİDEN BAĞLAN!
-        if (newState.status === 'disconnected') {
-          console.log('🚨 BAĞLANTI KOPTU! HEMEN YENİDEN BAĞLANIYOR...');
+        if (channel && channel.type === 2) {
+          const voiceConnection = joinVoiceChannel({
+            channelId: channel.id,
+            guildId: channel.guild.id,
+            adapterCreator: channel.guild.voiceAdapterCreator,
+            selfDeaf: true,
+            selfMute: true
+          });
+
+          console.log(`🎵 BOT KANALDA: ${channel.name}`);
           
-          // Hemen yok et ve yeniden başlat
-          setTimeout(() => {
-            voiceConnection.destroy();
-            superLoop(); // Hemen yeniden başlat
-          }, 500); // 0.5 SANİYE!
+          // Bağlantı durumunu güncelle
+          if (botConfigs.has(token)) {
+            const config = botConfigs.get(token);
+            config.lastConnection = new Date();
+            config.client = client;
+            config.voiceConnection = voiceConnection;
+          }
+
+          // Bağlantı kesilirse logla
+          voiceConnection.on('stateChange', (oldState, newState) => {
+            console.log(`🔊 ${c.user.tag} durumu: ${oldState.status} -> ${newState.status}`);
+          });
+
         }
-      });
+      } catch (channelError) {
+        console.error('Kanal hatası:', channelError);
+      }
+    });
 
-      voiceConnection.on('error', (error) => {
-        console.error('❌ Bağlantı hatası:', error);
-        
-        // HATA OLURSA HEMEN YENİDEN DENE
-        setTimeout(() => {
-          voiceConnection.destroy();
-          superLoop();
-        }, 1000);
-      });
-
-      // AKTİF BOTLARA KAYDET
-      activeBots.set(token, {
-        client: client,
-        voiceConnection: voiceConnection,
-        channel: channel,
-        connectedAt: new Date(),
-        connectionAttempts: connectionAttempts
-      });
-
-      // HER 10 SANİYEDE BİR BAĞLANTIYI KONTROL ET
-      const healthCheck = setInterval(() => {
-        if (voiceConnection.state.status === 'disconnected') {
-          console.log('🚨 SAĞLIK KONTROLÜ: Bağlantı kopmuş! Yeniden bağlanılıyor...');
-          clearInterval(healthCheck);
-          voiceConnection.destroy();
-          superLoop();
-        } else {
-          console.log('💚 Sağlık kontrolü: Bot hala kanalda!');
-        }
-      }, 10000); // 10 saniye
-
-    } catch (error) {
-      console.error('❌ Süper döngü hatası:', error);
-      
-      // HATA OLURSA 3 SANİYE SONRA TEKRAR DENE
-      setTimeout(() => {
-        superLoop();
-      }, 3000);
-    }
-  };
-
-  // SÜPER DÖNGÜYÜ BAŞLAT
-  console.log('🚀 SÜPER BAĞLANTI DÖNGÜSÜ BAŞLATILDI!');
-  superLoop();
+    await client.login(token);
+    
+  } catch (error) {
+    console.error('Bağlantı hatası:', error);
+  }
 }
 
-// SÜREKLİ PİNG SİSTEMİ
-setInterval(() => {
-  activeBots.forEach((bot, token) => {
-    if (bot.voiceConnection) {
-      const status = bot.voiceConnection.state.status;
-      console.log(`🏓 PING: ${bot.client.user?.tag} - Durum: ${status}`);
+// OTOMATİK YENİDEN BAĞLANMA SİSTEMİ
+setInterval(async () => {
+  console.log('🔄 OTOMATİK BOT KONTROLÜ...');
+  
+  for (const [token, config] of botConfigs.entries()) {
+    if (config.active) {
+      const now = new Date();
+      const lastConn = new Date(config.lastConnection);
+      const diffMinutes = (now - lastConn) / (1000 * 60);
       
-      if (status === 'disconnected') {
-        console.log(`🚨 ${bot.client.user?.tag} DÜŞTÜ! Yeniden bağlanılıyor...`);
-        bot.voiceConnection.destroy();
-        startSuperConnection(bot.client, bot.channel.id, token);
+      // Son 4 dakika içinde bağlanmadıysa yeniden bağlan
+      if (diffMinutes > 4) {
+        console.log(`🔁 Bot yeniden bağlanıyor: ${token.substring(0, 10)}...`);
+        
+        // Eski bağlantıyı temizle
+        if (config.client) {
+          try {
+            if (config.voiceConnection) config.voiceConnection.destroy();
+            config.client.destroy();
+          } catch (e) {
+            console.error('Temizleme hatası:', e);
+          }
+        }
+        
+        // Yeniden bağlan
+        await connectBot(token, config.channelId);
+      } else {
+        console.log(`✅ Bot aktif: ${token.substring(0, 10)}... (${Math.floor(diffMinutes)} dakika önce)`);
       }
     }
-  });
-}, 15000); // 15 saniye
+  }
+}, 60000); // 1 dakikada bir kontrol
+
+// Her 5 dakikada bir TÜM botları yeniden bağla (güvence)
+setInterval(async () => {
+  console.log('🔄 5 DAKİKALIK YENİDEN BAĞLANMA...');
+  
+  for (const [token, config] of botConfigs.entries()) {
+    if (config.active) {
+      console.log(`🔁 Zorunlu yeniden bağlanma: ${token.substring(0, 10)}...`);
+      
+      // Eski bağlantıyı temizle
+      if (config.client) {
+        try {
+          if (config.voiceConnection) config.voiceConnection.destroy();
+          config.client.destroy();
+        } catch (e) {
+          console.error('Temizleme hatası:', e);
+        }
+      }
+      
+      // Yeniden bağlan
+      await connectBot(token, config.channelId);
+    }
+  }
+}, 300000); // 5 dakika
