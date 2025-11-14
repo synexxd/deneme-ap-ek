@@ -224,6 +224,66 @@
                     <span class="success-message" id="successIpinfo">Kopyalandı!</span>
                 </div>
             </div>
+
+            <!-- Text-to-Speech API Kartı -->
+            <div class="api-card">
+                <div class="api-header">
+                    <div class="method-badge get">GET</div>
+                    <div class="method-badge post">POST</div>
+                    <div class="api-title">Text-to-Speech</div>
+                </div>
+
+                <div class="endpoint">/api/tts</div>
+
+                <div class="description">
+                    Metni sese çevirme ve video olarak oynatma - Google TTS entegrasyonu
+                </div>
+
+                <div class="parameters">
+                    <div class="section-title">Parameters:</div>
+                    <div class="parameter">
+                        <div class="checkbox checked">✓</div>
+                        <div class="param-name">text</div>
+                        <div class="param-desc">Sese çevrilecek metin (max: 200 karakter)</div>
+                    </div>
+                    <div class="parameter">
+                        <div class="checkbox"></div>
+                        <div class="param-name">lang</div>
+                        <div class="param-desc">Dil kodu (tr, en, de, fr, es, default: tr)</div>
+                    </div>
+                </div>
+
+                <div class="response-section">
+                    <div class="response-header" onclick="toggleResponse('tts')">
+                        <div class="section-title">Response:</div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="response-code" id="responseTts">📹 Video/Ses dosyası döndürülür
+
+// GET ile kullanım:
+GET /api/tts?text=Merhaba dünya&lang=tr
+
+// POST ile kullanım:
+POST /api/tts
+Content-Type: application/json
+
+{
+  "text": "Merhaba dünya",
+  "lang": "tr"
+}
+
+// Response: Video/MP4 dosyası
+// Discord'da direkt paylaşılabilir</div>
+                </div>
+
+                <div class="api-footer">
+                    <div class="date">08.02.2025</div>
+                    <button class="copy-btn" onclick="copyToClipboard('tts')">
+                        Kopyala
+                    </button>
+                    <span class="success-message" id="successTts">Kopyalandı!</span>
+                </div>
+            </div>
         </div>
 
         <!-- Sayfalama Butonları -->
@@ -386,6 +446,33 @@ GET /api/ipinfo?ip=79.127.184.108&lang=en
   },
   "timestamp": "2024-01-15T14:30:00.000Z"
 }`;
+            } else if (type === 'tts') {
+                responseCode = `// Text-to-Speech API Kullanımı
+
+// GET ile:
+GET /api/tts?text=Merhaba dünya&lang=tr
+
+// POST ile:
+POST /api/tts
+Content-Type: application/json
+
+{
+  "text": "Merhaba dünya",
+  "lang": "tr"
+}
+
+// Response: Video/MP4 dosyası döndürülür
+// Discord'da direkt paylaşılabilir
+
+// Tarayıcıda test:
+fetch('/api/tts?text=Merhaba')
+  .then(r => r.blob())
+  .then(blob => {
+      const video = document.createElement('video');
+      video.controls = true;
+      video.src = URL.createObjectURL(blob);
+      document.body.appendChild(video);
+  });`;
             }
             
             navigator.clipboard.writeText(responseCode).then(() => {
