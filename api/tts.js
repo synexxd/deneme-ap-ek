@@ -36,20 +36,25 @@ export default async function handler(req, res) {
       });
     }
 
-    // Google TTS URL'sini oluştur
+    // Google TTS'den ses dosyasını al
     const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(text)}`;
     
-    res.json({
-      status: 'success',
-      endpoint: '/api/tts',
-      method: req.method,
-      input_text: text,
-      language: lang,
-      audio_url: ttsUrl,
-      video_url: ttsUrl,
-      character_count: text.length,
-      timestamp: new Date().toISOString()
-    });
+    // Ses dosyasını proxyle
+    const response = await fetch(ttsUrl);
+    
+    if (!response.ok) {
+      throw new Error('Ses dosyası alınamadı');
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+    
+    // Video olarak döndür (Discord MP4 kabul eder)
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Disposition', `inline; filename="tts_${Date.now()}.mp4"`);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    
+    // Buffer'ı direkt döndür
+    res.send(Buffer.from(audioBuffer));
 
   } catch (error) {
     res.status(500).json({
