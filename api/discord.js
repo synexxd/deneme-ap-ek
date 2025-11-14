@@ -1,4 +1,4 @@
-// api/discord.js - Hata düzeltmeli
+// api/discord.js - Basitleştirilmiş ve Hızlı
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -12,16 +12,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    let token, channelId, guildId;
+    let token, channelId;
 
     if (req.method === 'GET') {
       token = req.query.token;
       channelId = req.query.channel_id;
-      guildId = req.query.guild_id;
     } else if (req.method === 'POST') {
       token = req.body.token;
       channelId = req.body.channel_id;
-      guildId = req.body.guild_id;
     } else {
       return res.status(405).json({
         status: 'error',
@@ -43,20 +41,18 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🤖 Discord Bot Bağlanıyor: ${channelId}`);
+    console.log(`🤖 Discord Bot Bağlanıyor...`);
 
-    // Botu ses kanalına bağla
-    const result = await connectBotToVoiceChannel(token, channelId, guildId);
+    // Direkt ses kanalına bağlan (kontrol yapmadan)
+    const result = await directVoiceConnect(token, channelId);
     
     res.status(200).json({
       status: 'success',
       endpoint: '/api/discord',
       method: req.method,
       channel_id: channelId,
-      guild_id: result.guild_id,
-      bot_username: result.bot_username,
       connected: true,
-      message: 'Bot ses kanalına başarıyla bağlandı',
+      message: 'Bot ses kanalına bağlandı',
       timestamp: new Date().toISOString()
     });
 
@@ -71,90 +67,71 @@ export default async function handler(req, res) {
   }
 }
 
-async function connectBotToVoiceChannel(token, channelId, guildId) {
+// Direkt ses bağlantısı (kontrolsüz)
+async function directVoiceConnect(token, channelId) {
   const baseURL = 'https://discord.com/api/v10';
 
   try {
-    // 1. Bot bilgilerini doğrula
-    console.log('🔐 Bot token doğrulanıyor...');
-    const botResponse = await fetch(`${baseURL}/users/@me`, {
-      headers: {
-        'Authorization': `Bot ${token}`
-      }
-    });
-
-    if (!botResponse.ok) {
-      throw new Error('Geçersiz bot token! Tokeni kontrol edin.');
-    }
-
-    const botData = await botResponse.json();
-    console.log(`✅ Bot Doğrulandı: ${botData.username}`);
-
-    // 2. Kanal bilgilerini al
-    console.log(`🔍 Kanal bilgileri alınıyor: ${channelId}`);
+    // 1. Önce kanal bilgisini al (guild_id için)
     const channelResponse = await fetch(`${baseURL}/channels/${channelId}`, {
       headers: {
         'Authorization': `Bot ${token}`
       }
     });
 
-    if (!channelResponse.ok) {
-      if (channelResponse.status === 404) {
-        throw new Error('Kanal bulunamadı! Kanal ID\'sini ve botun sunucuda olduğunu kontrol edin.');
-      } else if (channelResponse.status === 403) {
-        throw new Error('Bota kanalı görme yetkisi yok!');
-      } else {
-        throw new Error(`Kanal hatası: ${channelResponse.status}`);
-      }
-    }
-
-    const channelData = await channelResponse.json();
+    let guildId;
     
-    // Ses kanalı kontrolü
-    if (channelData.type !== 2) {
-      throw new Error('Bu bir ses kanalı değil! Ses kanalı ID\'si girin.');
+    if (channelResponse.ok) {
+      const channelData = await channelResponse.json();
+      guildId = channelData.guild_id;
+      console.log(`🎵 Kanal: ${channelData.name} | Sunucu: ${guildId}`);
+    } else {
+      // Kanal bilgisi alınamazsa, guild_id olmadan dene
+      console.log('⚠️ Kanal bilgisi alınamadı, guild_id olmadan deneniyor...');
+      guildId = 'auto';
     }
 
-    const actualGuildId = guildId || channelData.guild_id;
-    console.log(`🎵 Kanal: ${channelData.name} | Sunucu: ${actualGuildId}`);
-
-    // 3. Botu ses kanalına bağla
+    // 2. Direkt voice state update yap
     console.log('🔗 Ses kanalına bağlanılıyor...');
-    const voiceResponse = await fetch(`${baseURL}/guilds/${actualGuildId}/voice-states/@me`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bot ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        channel_id: channelId,
-        suppress: false,
-        request_to_speak_timestamp: null
-      })
-    });
+    
+    let voiceResponse;
+    
+    if (guildId && guildId !== 'auto') {
+      // Guild ID ile
+      voiceResponse = await fetch(`${baseURL}/guilds/${guildId}/voice-states/@me`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bot ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          channel_id: channelId,
+          suppress: false
+        })
+      });
+    } else {
+      // Guild ID olmadan (daha basit)
+      // Discord API genellikle guild_id gerektirir, bu yüzden alternatif yöntem
+      throw new Error('Guild ID bulunamadı. Botun sunucuda olduğundan emin olun.');
+    }
 
     if (voiceResponse.ok) {
       console.log('✅ Bot ses kanalına bağlandı!');
-      
-      return {
-        success: true,
-        bot_username: botData.username,
-        bot_id: botData.id,
-        guild_id: actualGuildId,
-        channel_name: channelData.name,
-        channel_id: channelData.id,
-        connection_status: 'connected'
-      };
+      return { success: true };
     } else {
       const errorText = await voiceResponse.text();
       console.error('❌ Ses bağlantı hatası:', voiceResponse.status, errorText);
       
-      if (voiceResponse.status === 403) {
-        throw new Error('Botun ses kanalına bağlanma yetkisi yok! "Connect" yetkisini verin.');
-      } else if (voiceResponse.status === 404) {
-        throw new Error('Kanal veya sunucu bulunamadı! ID\'leri kontrol edin.');
-      } else {
-        throw new Error(`Ses bağlantı hatası: ${voiceResponse.status}`);
+      // Hata mesajlarını iyileştir
+      switch (voiceResponse.status) {
+        case 400:
+          throw new Error('Geçersiz istek. Token veya kanal ID hatalı.');
+        case 403:
+          throw new Error('Botun yetkisi yok. "Connect" ve "Speak" yetkilerini verin.');
+        case 404:
+          throw new Error('Kanal veya sunucu bulunamadı. ID\'leri kontrol edin.');
+        default:
+          throw new Error(`Discord API hatası: ${voiceResponse.status}`);
       }
     }
 
