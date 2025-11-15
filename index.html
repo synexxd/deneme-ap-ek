@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SynexAPI - API Servisleri</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style-page1.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🚀 SynexAPI</h1>
-            <p>Çeşitli API servisleri</p>
+            <div class="header-content">
+                <h1>🚀 SynexAPI</h1>
+                <p>Güvenilir ve Hızlı API Servisleri</p>
+            </div>
         </header>
 
         <div class="api-cards">
@@ -24,11 +26,11 @@
                 <div class="endpoint">/api/anime</div>
 
                 <div class="description">
-                    Anime kızı evinde istermisin?
+                    Anime görselleri için geniş kütüphane
                 </div>
 
                 <div class="parameters">
-                    <div class="section-title">Parameter:</div>
+                    <div class="section-title">Parametreler:</div>
                     <div class="parameter">
                         <div class="checkbox"></div>
                         <div class="param-name">tag</div>
@@ -75,20 +77,20 @@
                 <div class="endpoint">/api/deprem</div>
 
                 <div class="description">
-                    AFAD resmi sitesinden gerçek zamanlı deprem verileri
+                    AFAD'dan gerçek zamanlı deprem verileri
                 </div>
 
                 <div class="parameters">
-                    <div class="section-title">Parameter:</div>
+                    <div class="section-title">Parametreler:</div>
                     <div class="parameter">
                         <div class="checkbox"></div>
                         <div class="param-name">city</div>
-                        <div class="param-desc">Şehir filtresi (istanbul, izmir, van, vb.)</div>
+                        <div class="param-desc">Şehir filtresi</div>
                     </div>
                     <div class="parameter">
                         <div class="checkbox checked">✓</div>
                         <div class="param-name">amount</div>
-                        <div class="param-desc">Kayıt sayısı (default: 50, max: 200)</div>
+                        <div class="param-desc">Kayıt sayısı (max: 200)</div>
                     </div>
                 </div>
 
@@ -100,22 +102,13 @@
                     <div class="response-code" id="responseDeprem">{
   "status": "success",
   "endpoint": "/api/deprem",
-  "method": "GET",
-  "source": "afad-web",
   "total": 3,
   "earthquakes": [
     {
-      "id": 1,
       "date": "15.01.2024 14:30:00",
       "location": "MARMARA DENIZI - ISTANBUL",
       "magnitude": 4.5,
-      "depth": 8.2,
-      "coordinates": {
-        "latitude": 40.9789,
-        "longitude": 28.8301
-      },
-      "timestamp": "2024-01-15T14:30:00.000Z",
-      "source": "AFAD"
+      "depth": 8.2
     }
   ]
 }</div>
@@ -140,20 +133,20 @@
                 <div class="endpoint">/api/weather</div>
 
                 <div class="description">
-                    Türkiye'deki şehirlerin güncel hava durumu bilgileri
+                    Türkiye şehirleri için hava durumu bilgileri
                 </div>
 
                 <div class="parameters">
-                    <div class="section-title">Parameter:</div>
+                    <div class="section-title">Parametreler:</div>
                     <div class="parameter">
                         <div class="checkbox checked">✓</div>
                         <div class="param-name">city</div>
-                        <div class="param-desc">Şehir adı (örn: istanbul, ankara, izmir)</div>
+                        <div class="param-desc">Şehir adı</div>
                     </div>
                     <div class="parameter">
                         <div class="checkbox"></div>
                         <div class="param-name">days</div>
-                        <div class="param-desc">Tahmin gün sayısı (1-7, default: 7)</div>
+                        <div class="param-desc">Tahmin gün sayısı (1-7)</div>
                     </div>
                 </div>
 
@@ -164,42 +157,19 @@
                     </div>
                     <div class="response-code" id="responseWeather">{
   "status": "success",
-  "endpoint": "/api/weather",
   "city": "Istanbul",
-  "country": "Turkey",
   "current": {
     "temperature": 18,
-    "feels_like": 17,
-    "humidity": 65,
-    "pressure": 1013,
-    "wind_speed": 12,
-    "wind_direction": "NE",
-    "description": "Parçalı bulutlu",
-    "icon": "partly-cloudy",
-    "timestamp": "2024-01-15T14:30:00.000Z"
+    "description": "Parçalı bulutlu"
   },
   "forecast": [
     {
       "date": "2024-01-16",
       "min_temp": 12,
-      "max_temp": 19,
-      "description": "Hafif yağmurlu",
-      "icon": "rainy"
+      "max_temp": 19
     }
   ]
 }</div>
-                </div>
-
-                <!-- Weather Demo Alanı -->
-                <div class="weather-demo">
-                    <div class="section-title">Demo: Hava Durumu</div>
-                    <div class="weather-container">
-                        <div class="weather-input-group">
-                            <input type="text" id="weatherCity" class="weather-input" placeholder="Şehir adı girin (örn: istanbul)" value="istanbul">
-                            <button class="weather-btn" id="getWeather">Sorgula</button>
-                        </div>
-                        <div id="weatherResult" class="weather-result"></div>
-                    </div>
                 </div>
 
                 <div class="api-footer">
@@ -225,11 +195,11 @@
                 </div>
 
                 <div class="parameters">
-                    <div class="section-title">Parameter:</div>
+                    <div class="section-title">Parametreler:</div>
                     <div class="parameter">
                         <div class="checkbox"></div>
                         <div class="param-name">base</div>
-                        <div class="param-desc">Baz döviz (usd, eur, gbp, default: usd)</div>
+                        <div class="param-desc">Baz döviz (usd, eur, gbp)</div>
                     </div>
                 </div>
 
@@ -240,35 +210,16 @@
                     </div>
                     <div class="response-code" id="responseDoviz">{
   "status": "success",
-  "endpoint": "/api/doviz",
-  "base_currency": {
-    "name": "Amerikan Doları",
-    "symbol": "$",
-    "code": "USD"
-  },
-  "timestamp": "2024-01-15T14:30:00.000Z",
   "currencies": {
     "USD": {
-      "name": "Amerikan Doları",
-      "symbol": "$",
-      "code": "USD",
       "buying": 28.45,
-      "selling": 28.65,
-      "rate": 28.55,
-      "change": 0.15,
-      "timestamp": "2024-01-15T14:30:00.000Z"
+      "selling": 28.65
     }
   },
   "precious_metals": {
     "gold": {
-      "name": "Gram Altın",
-      "symbol": "g",
-      "code": "XAU",
       "buying": 1850.5,
-      "selling": 1860.2,
-      "rate": 1855.3,
-      "change": 5.7,
-      "timestamp": "2024-01-15T14:30:00.000Z"
+      "selling": 1860.2
     }
   }
 }</div>
@@ -308,14 +259,9 @@
                 window.location.href = 'index.html';
             } else if (page === 2) {
                 window.location.href = 'page2.html';
-            } else if (page === 'next') {
-                window.location.href = 'page2.html';
-            } else if (page === 'prev') {
-                window.location.href = 'index.html';
             }
         }
 
-        // Mevcut JavaScript kodunuz buraya gelecek
         // Response bölümlerini açıp kapama
         function toggleResponse(type) {
             const responseElement = document.getElementById(`response${type.charAt(0).toUpperCase() + type.slice(1)}`);
@@ -327,153 +273,6 @@
             } else {
                 responseElement.style.display = 'none';
                 toggleIcon.textContent = '▼';
-            }
-        }
-
-        // Sayfa yüklendiğinde tüm response bölümlerini kapalı yap
-        document.addEventListener('DOMContentLoaded', function() {
-            // Tüm response bölümlerini başlangıçta kapalı yap
-            document.querySelectorAll('.response-code').forEach(element => {
-                element.style.display = 'none';
-            });
-            
-            // Tüm toggle icon'ları ayarla
-            document.querySelectorAll('.toggle-icon').forEach(icon => {
-                icon.textContent = '▼';
-            });
-
-            // Mevcut sayfayı aktif yap
-            const currentPage = window.location.pathname.includes('page2.html') ? 2 : 1;
-            updatePaginationButtons(currentPage);
-        });
-
-        function updatePaginationButtons(currentPage) {
-            const prevBtn = document.querySelector('.page-btn.prev');
-            const nextBtn = document.querySelector('.page-btn.next');
-            const page1Btn = document.querySelector('.page-btn.page-1');
-            const page2Btn = document.querySelector('.page-btn.page-2');
-
-            // Önceki ve sonraki butonlarını güncelle
-            prevBtn.disabled = currentPage === 1;
-            nextBtn.disabled = currentPage === 2;
-
-            // Sayfa butonlarını güncelle
-            page1Btn.classList.toggle('active', currentPage === 1);
-            page2Btn.classList.toggle('active', currentPage === 2);
-        }
-
-        // Weather API Frontend
-        class WeatherAPI {
-            constructor() {
-                this.apiBaseUrl = '/api';
-                this.init();
-            }
-
-            init() {
-                this.setupEventListeners();
-            }
-
-            async getWeather() {
-                const cityInput = document.getElementById('weatherCity');
-                const city = cityInput.value.trim();
-                const resultElement = document.getElementById('weatherResult');
-
-                if (!city) {
-                    this.showResult('⚠️ Lütfen bir şehir adı girin!', 'error');
-                    return;
-                }
-
-                try {
-                    this.showResult('⏳ Hava durumu sorgulanıyor...', 'info');
-                    const response = await fetch(`${this.apiBaseUrl}/weather?city=${encodeURIComponent(city)}`);
-                    const data = await response.json();
-
-                    if (data.status === 'success') {
-                        this.displayWeather(data);
-                    } else {
-                        this.showResult(`❌ ${data.error}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Hava durumu hatası:', error);
-                    this.showResult('❌ Hava durumu bilgisi alınamadı!', 'error');
-                }
-            }
-
-            displayWeather(data) {
-                const resultElement = document.getElementById('weatherResult');
-                const formatDate = (dateString) => {
-                    const date = new Date(dateString);
-                    return date.toLocaleDateString('tr-TR', { 
-                        weekday: 'short', 
-                        day: 'numeric', 
-                        month: 'short' 
-                    });
-                };
-
-                const weatherHTML = `
-                    <div class="weather-card">
-                        <div class="weather-header">
-                            <h3>${data.city}, ${data.country}</h3>
-                            <div class="weather-main">
-                                <div class="weather-temp">${data.current.temperature}°C</div>
-                                <div class="weather-desc">${data.current.description}</div>
-                                <div class="weather-feels">Hissedilen: ${data.current.feels_like}°C</div>
-                            </div>
-                        </div>
-                        <div class="weather-details">
-                            <div class="weather-detail">
-                                <span class="detail-label">Nem:</span>
-                                <span class="detail-value">${data.current.humidity}%</span>
-                            </div>
-                            <div class="weather-detail">
-                                <span class="detail-label">Rüzgar:</span>
-                                <span class="detail-value">${data.current.wind_speed} km/s ${data.current.wind_direction}</span>
-                            </div>
-                            <div class="weather-detail">
-                                <span class="detail-label">Basınç:</span>
-                                <span class="detail-value">${data.current.pressure} hPa</span>
-                            </div>
-                        </div>
-                        <div class="weather-forecast">
-                            <h4>7 Günlük Tahmin</h4>
-                            <div class="forecast-items">
-                                ${data.forecast.map(day => `
-                                    <div class="forecast-item">
-                                        <div class="forecast-date">${formatDate(day.date)}</div>
-                                        <div class="forecast-temp">${day.min_temp}° / ${day.max_temp}°</div>
-                                        <div class="forecast-desc">${day.description}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        <div class="weather-source">
-                            <small>Veri kaynağı: Open-Meteo API</small>
-                        </div>
-                    </div>
-                `;
-
-                resultElement.innerHTML = weatherHTML;
-                resultElement.className = 'weather-result success';
-                resultElement.style.display = 'block';
-            }
-
-            showResult(message, type) {
-                const resultElement = document.getElementById('weatherResult');
-                resultElement.textContent = message;
-                resultElement.className = `weather-result ${type}`;
-                resultElement.style.display = 'block';
-            }
-
-            setupEventListeners() {
-                document.getElementById('getWeather').addEventListener('click', () => {
-                    this.getWeather();
-                });
-
-                document.getElementById('weatherCity').addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.getWeather();
-                    }
-                });
             }
         }
 
@@ -493,92 +292,45 @@
                 responseCode = `{
   "status": "success",
   "endpoint": "/api/deprem", 
-  "method": "GET",
-  "source": "afad-web",
   "total": 3,
   "earthquakes": [
     {
-      "id": 1,
       "date": "15.01.2024 14:30:00",
       "location": "MARMARA DENIZI - ISTANBUL",
       "magnitude": 4.5,
-      "depth": 8.2,
-      "coordinates": {
-        "latitude": 40.9789,
-        "longitude": 28.8301
-      },
-      "timestamp": "2024-01-15T14:30:00.000Z",
-      "source": "AFAD"
+      "depth": 8.2
     }
   ]
 }`;
             } else if (type === 'weather') {
-                responseCode = `// Hava Durumu API Kullanımı
-GET /api/weather?city=istanbul
-
-// Response:
-{
+                responseCode = `{
   "status": "success",
-  "endpoint": "/api/weather",
   "city": "Istanbul",
-  "country": "Turkey",
   "current": {
     "temperature": 18,
-    "feels_like": 17,
-    "humidity": 65,
-    "pressure": 1013,
-    "wind_speed": 12,
-    "wind_direction": "NE",
-    "description": "Parçalı bulutlu",
-    "icon": "partly-cloudy",
-    "timestamp": "2024-01-15T14:30:00.000Z"
+    "description": "Parçalı bulutlu"
   },
   "forecast": [
     {
       "date": "2024-01-16",
       "min_temp": 12,
-      "max_temp": 19,
-      "description": "Hafif yağmurlu",
-      "icon": "rainy"
+      "max_temp": 19
     }
   ]
 }`;
             } else if (type === 'doviz') {
-                responseCode = `// Döviz API Kullanımı
-GET /api/doviz?base=usd
-
-// Response:
-{
+                responseCode = `{
   "status": "success",
-  "endpoint": "/api/doviz",
-  "base_currency": {
-    "name": "Amerikan Doları",
-    "symbol": "$",
-    "code": "USD"
-  },
-  "timestamp": "2024-01-15T14:30:00.000Z",
   "currencies": {
     "USD": {
-      "name": "Amerikan Doları",
-      "symbol": "$",
-      "code": "USD",
       "buying": 28.45,
-      "selling": 28.65,
-      "rate": 28.55,
-      "change": 0.15,
-      "timestamp": "2024-01-15T14:30:00.000Z"
+      "selling": 28.65
     }
   },
   "precious_metals": {
     "gold": {
-      "name": "Gram Altın",
-      "symbol": "g",
-      "code": "XAU",
       "buying": 1850.5,
-      "selling": 1860.2,
-      "rate": 1855.3,
-      "change": 5.7,
-      "timestamp": "2024-01-15T14:30:00.000Z"
+      "selling": 1860.2
     }
   }
 }`;
@@ -608,9 +360,15 @@ GET /api/doviz?base=usd
             });
         });
 
-        // Sayfa yüklendiğinde Weather API'yi başlat
+        // Sayfa yüklendiğinde response bölümlerini kapalı yap
         document.addEventListener('DOMContentLoaded', function() {
-            window.weatherAPI = new WeatherAPI();
+            document.querySelectorAll('.response-code').forEach(element => {
+                element.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.toggle-icon').forEach(icon => {
+                icon.textContent = '▼';
+            });
         });
     </script>
 </body>
