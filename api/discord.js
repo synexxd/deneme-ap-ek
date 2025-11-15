@@ -1,35 +1,27 @@
-// api/discord.js - Vercel Optimized
+// api/discord.js - Self Token Fix
 import { Client, GatewayIntentBits } from 'discord.js';
 import { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 
-// Vercel serverless ortamında global state dikkatli kullanılmalı
+// Global state for Vercel
 if (!global.activeBots) {
   global.activeBots = new Map();
 }
 
 const activeBots = global.activeBots;
-const MAX_BOT_LIFETIME = 55 * 60 * 1000; // 55 dakika (Vercel timeout'dan önce)
-const CHECK_INTERVAL = 30000; // 30 saniye (Vercel için güvenli)
-const RECONNECT_DELAY = 10000; // 10 saniye
+const MAX_BOT_LIFETIME = 55 * 60 * 1000;
+const CHECK_INTERVAL = 30000;
+const RECONNECT_DELAY = 10000;
 
-// Bot temizleme fonksiyonu
+// Bot temizleme
 function cleanupBot(token) {
   if (activeBots.has(token)) {
     const bot = activeBots.get(token);
     console.log(`🧹 Bot temizleniyor: ${maskToken(token)}`);
     
-    // Interval'leri temizle
-    if (bot.checkInterval) {
-      clearInterval(bot.checkInterval);
-    }
-    if (bot.reconnectTimeout) {
-      clearTimeout(bot.reconnectTimeout);
-    }
-    if (bot.cleanupTimeout) {
-      clearTimeout(bot.cleanupTimeout);
-    }
+    if (bot.checkInterval) clearInterval(bot.checkInterval);
+    if (bot.reconnectTimeout) clearTimeout(bot.reconnectTimeout);
+    if (bot.cleanupTimeout) clearTimeout(bot.cleanupTimeout);
     
-    // Bağlantıları destroy et
     try {
       if (bot.voiceConnection) {
         bot.voiceConnection.destroy();
@@ -47,51 +39,146 @@ function cleanupBot(token) {
 
 // Token maskeleme
 function maskToken(token) {
-  if (!token || typeof token !== 'string') return '???';
-  if (token.length <= 15) return token;
+  if (!token) return '???';
   return `${token.substring(0, 10)}...${token.substring(token.length - 5)}`;
 }
 
-// Token tipi kontrolü
+// Token tipi kontrolü (geliştirilmiş)
 function isSelfToken(token) {
   if (!token || typeof token !== 'string') return false;
+  
+  // Bot token: MTExxxx.x.x (3 parça, base64 format)
+  // Self token: genellikle tek parça ve daha uzun
   const parts = token.split('.');
-  return parts.length !== 3; // Bot token 3 parça, self token tek parça
+  
+  if (parts.length === 3) {
+    try {
+      // İlk parçayı base64 decode etmeye çalış
+      const firstPart = Buffer.from(parts[0], 'base64').toString();
+      // Bot token'ın ilk parçası genellikle sayısal ID içerir
+      return !/^\d+$/.test(firstPart);
+    } catch {
+      return true; // Base64 decode edilemezse self token
+    }
+  }
+  
+  return true; // 3 parça değilse self token
 }
 
-// Vercel için optimized başlatma
+// Self Token için özel client oluşturma
+function createClientForToken(token) {
+  const isSelf = isSelfToken(token);
+  
+  console.log(`🔧 ${isSelf ? 'SELF TOKEN' : 'BOT TOKEN'} için client oluşturuluyor`);
+  
+  const baseOptions = {
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent
+    ],
+    rest: {
+      timeout: 20000,
+      retries: 3,
+    },
+    ws: {
+      large_threshold: 100,
+      compress: false,
+    }
+  };
+
+  // Self token için özel ayarlar
+  if (isSelf) {
+    return new Client({
+      ...baseOptions,
+      // Self token için ek optimizasyonlar
+      makeCache: true,
+      partials: [],
+      presence: {
+        status: 'online',
+        activities: [{
+          name: 'Voice Channel',
+          type: 2 // Listening
+        }]
+      }
+    });
+  }
+  
+  // Bot token için standart ayarlar
+  return new Client(baseOptions);
+}
+
+// Self token login işlemi
+async function loginWithToken(client, token) {
+  const isSelf = isSelfToken(token);
+  
+  if (isSelf) {
+    console.log(`🔐 Self token ile giriş yapılıyor...`);
+    
+    try {
+      // Discord.js'nin user token login'i için workaround
+      // Token'ı direkt REST manager'a set et
+      client.rest.setToken(token);
+      
+      // WebSocket bağlantısını manual başlat
+      await client.login(token).catch(async (error) => {
+        console.log(`⚠️  İlk login denemesi başarısız, alternatif yöntem deneniyor...`);
+        
+        // Alternatif yöntem - token'ı farklı şekilde kullan
+        await alternativeLogin(client, token);
+      });
+      
+      return true;
+    } catch (error) {
+      console.error(`❌ Self token login hatası:`, error.message);
+      throw new Error(`Self token authentication failed: ${error.message}`);
+    }
+  } else {
+    // Bot token normal login
+    return client.login(token);
+  }
+}
+
+// Alternatif login yöntemi
+async function alternativeLogin(client, token) {
+  return new Promise((resolve, reject) => {
+    console.log(`🔄 Alternatif login yöntemi deneniyor...`);
+    
+    // Client'ı manual olarak hazırla
+    client.token = token;
+    
+    // WebSocket bağlantısını başlat
+    client.ws.connect()
+      .then(() => {
+        console.log(`✅ Alternatif login başarılı`);
+        resolve(true);
+      })
+      .catch(error => {
+        console.error(`❌ Alternatif login başarısız:`, error.message);
+        reject(error);
+      });
+  });
+}
+
+// Bot başlatma
 async function startBot(token, channelId) {
   return new Promise(async (resolve, reject) => {
     const isSelf = isSelfToken(token);
     let client;
 
     try {
-      // Client configuration
-      const clientOptions = {
-        intents: [
-          GatewayIntentBits.Guilds,
-          GatewayIntentBits.GuildVoiceStates,
-          ...(isSelf ? [GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] : [])
-        ],
-        // Vercel için optimize edilmiş ayarlar
-        rest: {
-          timeout: 10000,
-          retries: 2,
-        },
-        ws: {
-          large_threshold: 50,
-          compress: true,
-        }
-      };
+      console.log(`🚀 ${isSelf ? 'SELF TOKEN' : 'BOT'} başlatılıyor...`);
+      
+      // Token için uygun client oluştur
+      client = createClientForToken(token);
 
-      client = new Client(clientOptions);
-
-      // Ready event - Vercel'de hızlı bağlantı için
+      // Ready event
       client.once('ready', async (c) => {
-        console.log(`✅ ${isSelf ? 'SELF' : 'BOT'} HAZIR: ${c.user.tag}`);
+        console.log(`✅ ${isSelf ? 'SELF TOKEN' : 'BOT'} HAZIR: ${c.user.tag} (${c.user.id})`);
         
         try {
-          // Hızlı bağlantı kur
+          // Ses kanalına bağlan
           const voiceConnection = await connectToVoice(client, channelId);
           
           if (!voiceConnection) {
@@ -99,12 +186,12 @@ async function startBot(token, channelId) {
             return;
           }
 
-          // Kontrol mekanizması - Vercel için daha uzun aralıklarla
+          // Kontrol mekanizması
           const checkInterval = setInterval(() => {
             checkAndReconnect(client, channelId, token).catch(console.error);
           }, CHECK_INTERVAL);
 
-          // Otomatik temizlik timeout'u
+          // Otomatik temizlik
           const cleanupTimeout = setTimeout(() => {
             console.log(`⏰ Otomatik temizlik: ${maskToken(token)}`);
             cleanupBot(token);
@@ -134,32 +221,45 @@ async function startBot(token, channelId) {
         }
       });
 
-      // Error handling - Vercel için daha az agresif
+      // Error handling
       client.on('error', (error) => {
-        console.error(`❌ Client error (${maskToken(token)}):`, error.message);
+        console.error(`❌ ${isSelf ? 'Self Token' : 'Bot'} hatası:`, error.message);
       });
 
-      // Debug - Vercel'de sadece önemli loglar
+      // Debug info
       client.on('debug', (info) => {
-        if (info.includes('VOICE_') || info.includes('Session')) {
-          console.log(`🔍 Debug (${maskToken(token)}):`, info.substring(0, 100));
+        if (info.includes('Authentication') || info.includes('VOICE_')) {
+          console.log(`🔍 ${maskToken(token)}:`, info.substring(0, 100));
+        }
+      });
+
+      // Invalid session handling (self token için önemli)
+      client.on('invalidated', () => {
+        console.log(`🔄 Session invalidated: ${maskToken(token)}`);
+        if (isSelf) {
+          setTimeout(() => {
+            cleanupBot(token);
+            startBot(token, channelId).catch(console.error);
+          }, 5000);
         }
       });
 
       // Login işlemi
-      await client.login(token);
+      await loginWithToken(client, token);
 
     } catch (error) {
-      // Client'ı temizle
+      console.error(`💥 Başlatma hatası (${maskToken(token)}):`, error.message);
+      
       if (client && !client.destroyed) {
         client.destroy().catch(() => {});
       }
-      reject(new Error(`Login failed: ${error.message}`));
+      
+      reject(error);
     }
   });
 }
 
-// Ses bağlantısı - Vercel optimized
+// Ses bağlantısı
 async function connectToVoice(client, channelId) {
   try {
     const channel = await client.channels.fetch(channelId);
@@ -172,13 +272,7 @@ async function connectToVoice(client, channelId) {
       throw new Error('Ses kanalı değil');
     }
 
-    // İzin kontrolü
-    const permissions = channel.permissionsFor(client.user);
-    if (!permissions?.has('Connect')) {
-      throw new Error('Kanala bağlanma izni yok');
-    }
-
-    console.log(`🎵 Bağlanılıyor: ${channel.name}`);
+    console.log(`🎵 Bağlanılıyor: ${channel.name} (${channel.guild.name})`);
     
     const voiceConnection = joinVoiceChannel({
       channelId: channel.id,
@@ -211,7 +305,10 @@ async function connectToVoice(client, channelId) {
 // Yeniden bağlanma
 async function reconnectVoice(client, channelId) {
   try {
-    const oldConnection = getVoiceConnection(client.guilds.cache.first()?.id);
+    const guild = client.guilds.cache.first();
+    if (!guild) return;
+
+    const oldConnection = getVoiceConnection(guild.id);
     if (oldConnection) {
       oldConnection.destroy();
     }
@@ -235,7 +332,7 @@ async function checkAndReconnect(client, channelId, token) {
     const isInVoice = botVoiceState?.channelId === channelId;
     
     if (!isInVoice) {
-      console.log('🚨 Yeniden bağlanılıyor...');
+      console.log(`🚨 ${maskToken(token)} seste değil, yeniden bağlanılıyor...`);
       await reconnectVoice(client, channelId);
     }
     
@@ -244,9 +341,9 @@ async function checkAndReconnect(client, channelId, token) {
   }
 }
 
-// Vercel serverless handler
+// API Handler
 export default async function handler(req, res) {
-  // CORS headers - Vercel için
+  // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -254,33 +351,26 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // OPTIONS isteği
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Sadece GET ve POST
-  if (req.method !== 'GET' && req.method !== 'POST') {
-    return res.status(405).json({
-      status: 'error',
-      message: 'Method not allowed'
-    });
-  }
-
   try {
-    // Request parsing
     let tokens = [];
     let channelId;
 
+    // Request parsing
     if (req.method === 'GET') {
       const { token, tokens: tokensParam, channel_id } = req.query;
-      tokens = tokensParam ? tokensParam.split(',').map(t => t.trim()) : [token].filter(Boolean);
+      tokens = tokensParam ? 
+        tokensParam.split(',').map(t => t.trim()).filter(Boolean) 
+        : [token].filter(Boolean);
       channelId = channel_id;
     } else {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const { token, tokens: tokensParam, channel_id } = body;
       tokens = tokensParam ? 
-        (Array.isArray(tokensParam) ? tokensParam : tokensParam.split(',').map(t => t.trim())) 
+        (Array.isArray(tokensParam) ? tokensParam : tokensParam.split(',').map(t => t.trim()))
         : [token].filter(Boolean);
       channelId = channel_id;
     }
@@ -295,21 +385,24 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!channelId || typeof channelId !== 'string') {
+    if (!channelId) {
       return res.status(400).json({
         status: 'error',
-        message: 'Geçerli channel_id gereklidir'
+        message: 'Channel ID gereklidir'
       });
     }
 
-    console.log(`🚀 ${tokens.length} token işleniyor...`);
+    console.log(`🤖 ${tokens.length} token işleniyor...`);
 
     const results = [];
     const errors = [];
 
-    // Token'ları sırayla işle (Vercel concurrency limiti için)
+    // Token'ları işle
     for (const token of tokens) {
       try {
+        const isSelf = isSelfToken(token);
+        console.log(`🔍 Token tipi: ${isSelf ? 'SELF' : 'BOT'} - ${maskToken(token)}`);
+
         // Mevcut bot varsa temizle
         if (activeBots.has(token)) {
           cleanupBot(token);
@@ -318,42 +411,46 @@ export default async function handler(req, res) {
 
         // Yeni bot başlat
         const result = await startBot(token, channelId);
+        
         results.push({
           token: maskToken(token),
-          token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
+          token_type: isSelf ? 'self_token' : 'bot_token',
           status: 'success',
           bot_username: result.botUsername,
           user_id: result.userId,
           connected: true
         });
 
-        console.log(`✅ Başarılı: ${result.botUsername}`);
+        console.log(`✅ ${isSelf ? 'SELF TOKEN' : 'BOT'} başlatıldı: ${result.botUsername}`);
 
       } catch (error) {
+        const isSelf = isSelfToken(token);
         errors.push({
           token: maskToken(token),
-          token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
+          token_type: isSelf ? 'self_token' : 'bot_token',
           status: 'error',
           message: error.message
         });
-        console.error(`❌ Hata: ${error.message}`);
+        
+        console.error(`❌ ${isSelf ? 'SELF TOKEN' : 'BOT'} hatası:`, error.message);
       }
 
-      // Rate limit protection
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    // Response - Vercel için optimized
+    // Response
     return res.status(200).json({
       status: 'completed',
-      environment: 'vercel',
       total_tokens: tokens.length,
       successful: results.length,
       failed: errors.length,
+      token_types: {
+        self_tokens: tokens.filter(t => isSelfToken(t)).length,
+        bot_tokens: tokens.filter(t => !isSelfToken(t)).length
+      },
       results,
       errors,
-      check_interval: `${CHECK_INTERVAL / 1000}s`,
-      max_lifetime: `${MAX_BOT_LIFETIME / 60000}m`,
+      message: `${results.length} token başarıyla aktif edildi!`,
       timestamp: new Date().toISOString()
     });
 
@@ -367,31 +464,10 @@ export default async function handler(req, res) {
   }
 }
 
-// Vercel fonksiyon timeout'u için cleanup
+// Cleanup on SIGTERM
 process.on('SIGTERM', () => {
-  console.log('🔚 SIGTERM received, cleaning up...');
+  console.log('🔚 Cleaning up...');
   activeBots.forEach((bot, token) => {
     cleanupBot(token);
   });
 });
-
-// Health check endpoint (opsiyonel)
-export async function getStatus() {
-  const bots = [];
-  activeBots.forEach((bot, token) => {
-    bots.push({
-      token: maskToken(token),
-      username: bot.botUsername,
-      channelId: bot.channelId,
-      connectedAt: new Date(bot.connectedAt).toISOString(),
-      uptime: Date.now() - bot.connectedAt
-    });
-  });
-  
-  return {
-    status: 'ok',
-    active_bots: bots.length,
-    bots,
-    timestamp: new Date().toISOString()
-  };
-}
