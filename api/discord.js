@@ -1,5 +1,5 @@
-// api/discord.js - Paralel Hızlı Giriş
-import { Client, GatewayIntentBits } from 'discord.js';
+// api/discord.js - makeCache Fix
+import { Client, GatewayIntentBits, Options } from 'discord.js';
 import { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 
 // Global state for Vercel
@@ -10,7 +10,7 @@ if (!global.activeBots) {
 const activeBots = global.activeBots;
 const MAX_BOT_LIFETIME = 55 * 60 * 1000;
 const CHECK_INTERVAL = 30000;
-const RECONNECT_DELAY = 5000; // Daha hızlı reconnect
+const RECONNECT_DELAY = 5000;
 
 // Bot temizleme
 function cleanupBot(token) {
@@ -50,30 +50,43 @@ function isSelfToken(token) {
   return parts.length !== 3;
 }
 
-// Hızlı Client oluşturma
+// Hızlı Client oluşturma - makeCache FIX
 function createFastClient(token) {
   const isSelf = isSelfToken(token);
   
-  return new Client({
+  // Discord.js v14 için doğru cache ayarları
+  const clientOptions = {
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildVoiceStates,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent
     ],
-    // HIZ OPTIMIZASYONLARI
+    // makeCache FIX - Options.CacheWithLimits kullan
+    makeCache: Options.cacheWithLimits({
+      ...Options.defaultMakeCacheSettings,
+      // Daha az memory kullanımı için cache limitleri
+      MessageManager: {
+        maxSize: 10, // Sadece 10 message cache'le
+        keepOverLimit: item => item.pinned
+      },
+      ThreadManager: {
+        maxSize: 10
+      }
+    }),
+    // REST optimizasyonları
     rest: {
-      timeout: 10000, // Daha kısa timeout
-      retries: 1,     // Daha az retry
+      timeout: 15000,
+      retries: 2,
     },
+    // WebSocket optimizasyonları
     ws: {
       large_threshold: 50,
       compress: true,
-    },
-    // Daha hızlı başlangıç
-    makeCache: true,
-    partials: []
-  });
+    }
+  };
+
+  return new Client(clientOptions);
 }
 
 // Hızlı bot başlatma
@@ -83,11 +96,11 @@ async function startBotFast(token, channelId) {
     let client;
 
     try {
-      console.log(`⚡ ${isSelf ? 'SELF' : 'BOT'} hızlı başlatılıyor: ${maskToken(token)}`);
+      console.log(`⚡ ${isSelf ? 'SELF' : 'BOT'} başlatılıyor: ${maskToken(token)}`);
       
       client = createFastClient(token);
 
-      // Hızlı ready event
+      // Ready event
       client.once('ready', async (c) => {
         console.log(`✅ ${isSelf ? 'SELF' : 'BOT'} HAZIR: ${c.user.tag}`);
         
@@ -132,16 +145,28 @@ async function startBotFast(token, channelId) {
         }
       });
 
-      // Hata handling
+      // Error handling
       client.on('error', (error) => {
         console.error(`❌ ${isSelf ? 'Self' : 'Bot'} hatası:`, error.message);
+      });
+
+      // Debug - sadece önemli mesajlar
+      client.on('debug', (info) => {
+        if (info.includes('Authenticated') || info.includes('VOICE_STATE_UPDATE')) {
+          console.log(`🔍 ${maskToken(token)}: ${info.substring(0, 80)}`);
+        }
+      });
+
+      // Rate limit handling
+      client.on('rateLimit', (info) => {
+        console.log(`⏳ ${maskToken(token)} rate limit: ${info.timeout}ms`);
       });
 
       // Hızlı login
       await client.login(token);
 
     } catch (error) {
-      console.error(`💥 Hızlı başlatma hatası (${maskToken(token)}):`, error.message);
+      console.error(`💥 Başlatma hatası (${maskToken(token)}):`, error.message);
       
       if (client && !client.destroyed) {
         client.destroy().catch(() => {});
@@ -165,7 +190,7 @@ async function connectToVoiceFast(client, channelId) {
       throw new Error('Ses kanalı değil');
     }
 
-    console.log(`🎵 ${client.user.tag} hızlı bağlanıyor...`);
+    console.log(`🎵 ${client.user.tag} bağlanıyor...`);
     
     const voiceConnection = joinVoiceChannel({
       channelId: channel.id,
@@ -176,7 +201,7 @@ async function connectToVoiceFast(client, channelId) {
     });
 
     voiceConnection.on(VoiceConnectionStatus.Disconnected, () => {
-      console.log(`🔌 ${client.user.tag} bağlantı kesildi, hızlı reconnect...`);
+      console.log(`🔌 ${client.user.tag} bağlantı kesildi, yeniden bağlanılıyor...`);
       setTimeout(() => {
         reconnectVoiceFast(client, channelId).catch(console.error);
       }, RECONNECT_DELAY);
@@ -189,7 +214,7 @@ async function connectToVoiceFast(client, channelId) {
     return voiceConnection;
     
   } catch (error) {
-    console.error(`❌ ${client.user?.tag || 'Unknown'} hızlı bağlantı hatası:`, error.message);
+    console.error(`❌ ${client.user?.tag || 'Unknown'} bağlantı hatası:`, error.message);
     throw error;
   }
 }
@@ -205,11 +230,10 @@ async function reconnectVoiceFast(client, channelId) {
       oldConnection.destroy();
     }
     
-    // Daha kısa bekleme
     await new Promise(resolve => setTimeout(resolve, 1000));
     await connectToVoiceFast(client, channelId);
   } catch (error) {
-    console.error('Hızlı yeniden bağlanma hatası:', error);
+    console.error('Yeniden bağlanma hatası:', error);
   }
 }
 
@@ -225,12 +249,12 @@ async function checkAndReconnectFast(client, channelId, token) {
     const isInVoice = botVoiceState?.channelId === channelId;
     
     if (!isInVoice) {
-      console.log(`🚨 ${client.user.tag} seste değil, hızlı yeniden bağlanılıyor...`);
+      console.log(`🚨 ${client.user.tag} seste değil, yeniden bağlanılıyor...`);
       await reconnectVoiceFast(client, channelId);
     }
     
   } catch (error) {
-    console.error('Hızlı kontrol hatası:', error);
+    console.error('Kontrol hatası:', error);
   }
 }
 
