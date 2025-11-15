@@ -1,4 +1,4 @@
-// api/discord.js - ClientReady Fix (No Reconnect)
+// api/discord.js - Rate Limit Fix (3s Aralıklı)
 import { Client, GatewayIntentBits, Options } from 'discord.js';
 import { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 
@@ -9,6 +9,7 @@ if (!global.activeBots) {
 
 const activeBots = global.activeBots;
 const MAX_BOT_LIFETIME = 55 * 60 * 1000;
+const DELAY_BETWEEN_BOTS = 3000; // 3 saniye
 
 // Bot temizleme
 function cleanupBot(token) {
@@ -16,7 +17,6 @@ function cleanupBot(token) {
     const bot = activeBots.get(token);
     console.log(`🧹 Bot temizleniyor: ${maskToken(token)}`);
     
-    if (bot.checkInterval) clearInterval(bot.checkInterval);
     if (bot.cleanupTimeout) clearTimeout(bot.cleanupTimeout);
     
     try {
@@ -47,26 +47,25 @@ function isSelfToken(token) {
   return parts.length !== 3;
 }
 
-// Client oluşturma - Basit ve temiz
+// Client oluşturma
 function createClient() {
   return new Client({
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildVoiceStates
     ],
-    // Minimal cache
     makeCache: Options.cacheWithLimits({
       MessageManager: 0,
       ThreadManager: 0,  
     }),
     rest: {
-      timeout: 10000,
+      timeout: 15000,
       retries: 1,
     }
   });
 }
 
-// Bot başlatma - CLIENTREADY FIX (No Reconnect)
+// Bot başlatma - RATE LIMIT FIX
 async function startBot(token, channelId) {
   return new Promise(async (resolve, reject) => {
     const isSelf = isSelfToken(token);
@@ -78,58 +77,14 @@ async function startBot(token, channelId) {
       
       client = createClient();
 
-      // CLIENTREADY EVENT - FIX
-      client.once('clientReady', async (c) => {
+      // READY EVENT - rate limit için daha güvenli
+      const handleReady = async (c) => {
         if (readyResolved) return;
         readyResolved = true;
         
         console.log(`✅ ${isSelf ? 'SELF' : 'BOT'} HAZIR: ${c.user.tag}`);
         
         try {
-          // Ses bağlantısı - YENIDEN BAĞLANMA YOK
-          const voiceConnection = await connectToVoice(client, channelId);
-          
-          if (!voiceConnection) {
-            reject(new Error('Ses kanalına bağlanılamadı'));
-            return;
-          }
-
-          // Sadece temizlik timeout'u
-          const cleanupTimeout = setTimeout(() => {
-            console.log(`⏰ Otomatik temizlik: ${maskToken(token)}`);
-            cleanupBot(token);
-          }, MAX_BOT_LIFETIME);
-
-          activeBots.set(token, {
-            client,
-            voiceConnection,
-            channelId,
-            cleanupTimeout,
-            connectedAt: Date.now(),
-            botUsername: c.user.tag,
-            userId: c.user.id,
-            isSelfToken: isSelf
-          });
-
-          resolve({
-            botUsername: c.user.tag,
-            userId: c.user.id,
-            connected: true
-          });
-
-        } catch (error) {
-          reject(error);
-        }
-      });
-
-      // Eski ready event için fallback
-      client.once('ready', async (c) => {
-        if (readyResolved) return;
-        readyResolved = true;
-        
-        console.log(`✅ ${isSelf ? 'SELF' : 'BOT'} READY (fallback): ${c.user.tag}`);
-        
-        try {
           const voiceConnection = await connectToVoice(client, channelId);
           
           if (!voiceConnection) {
@@ -162,7 +117,11 @@ async function startBot(token, channelId) {
         } catch (error) {
           reject(error);
         }
-      });
+      };
+
+      // İki event'i de dinle (rate limit için)
+      client.once('clientReady', handleReady);
+      client.once('ready', handleReady);
 
       // Error handling
       client.on('error', (error) => {
@@ -173,14 +132,19 @@ async function startBot(token, channelId) {
         }
       });
 
-      // Timeout ekle (20 saniye)
+      // Rate limit handling
+      client.on('rateLimit', (info) => {
+        console.log(`⏳ Rate limit: ${maskToken(token)} - ${info.timeout}ms`);
+      });
+
+      // Timeout (25 saniye)
       const timeout = setTimeout(() => {
         if (!readyResolved) {
           readyResolved = true;
           console.error(`⏰ Timeout: ${maskToken(token)}`);
-          reject(new Error('Bot başlatma timeout (20s)'));
+          reject(new Error('Bot başlatma timeout (25s)'));
         }
-      }, 20000);
+      }, 25000);
 
       // Login
       await client.login(token);
@@ -200,7 +164,7 @@ async function startBot(token, channelId) {
   });
 }
 
-// Ses bağlantısı - YENIDEN BAĞLANMA YOK
+// Ses bağlantısı
 async function connectToVoice(client, channelId) {
   try {
     const channel = await client.channels.fetch(channelId);
@@ -223,14 +187,12 @@ async function connectToVoice(client, channelId) {
       selfMute: true
     });
 
-    // YENIDEN BAĞLANMA YOK - sadece bağlantı kur
     voiceConnection.on(VoiceConnectionStatus.Ready, () => {
       console.log(`✅ ${client.user.tag} ses bağlantısı hazır`);
     });
 
     voiceConnection.on(VoiceConnectionStatus.Disconnected, () => {
-      console.log(`🔌 ${client.user.tag} bağlantı kesildi (yeniden bağlanma YOK)`);
-      // YENIDEN BAĞLANMA YOK - sadece log
+      console.log(`🔌 ${client.user.tag} bağlantı kesildi`);
     });
 
     return voiceConnection;
@@ -241,81 +203,75 @@ async function connectToVoice(client, channelId) {
   }
 }
 
-// TÜM TOKENLARI AYNI ANDA BAŞLAT
-async function startAllTokensParallel(tokens, channelId) {
-  console.log(`🚀 TÜM TOKENLAR AYNI ANDA BAŞLATILIYOR: ${tokens.length} token`);
+// 3 SANIYE ARALIKLI BAŞLATMA
+async function startTokensWithDelay(tokens, channelId) {
+  console.log(`🚀 TOKENLAR 3 SANIYE ARALIKLARLA BAŞLATILIYOR: ${tokens.length} token`);
   
   const startTime = Date.now();
-  
+  const results = [];
+  const errors = [];
+
   // Önce tüm mevcut botları temizle
-  tokens.forEach(token => {
+  for (const token of tokens) {
     if (activeBots.has(token)) {
       cleanupBot(token);
     }
-  });
+  }
 
-  // 1 saniye bekle temizlik için
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  // 2 saniye bekle temizlik için
+  await new Promise(resolve => setTimeout(resolve, 2000));
 
-  // Tüm token'ları aynı anda başlat
-  const promises = tokens.map(async (token, index) => {
+  // Token'ları sırayla başlat (3 saniye aralıklarla)
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    const isSelf = isSelfToken(token);
+    
     try {
-      console.log(`⚡ [${index + 1}/${tokens.length}] Başlatılıyor: ${maskToken(token)}`);
+      console.log(`\n🔧 [${i + 1}/${tokens.length}] Başlatılıyor: ${maskToken(token)}`);
       
       const result = await startBot(token, channelId);
       
-      return {
+      results.push({
         token: maskToken(token),
-        token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
+        token_type: isSelf ? 'self_token' : 'bot_token',
         status: 'success',
         bot_username: result.botUsername,
         user_id: result.userId,
         connected: true,
-        start_order: index + 1
-      };
-      
+        start_order: i + 1
+      });
+
+      console.log(`✅ [${i + 1}/${tokens.length}] BAŞARILI: ${result.botUsername}`);
+
+      // Son token değilse 3 saniye bekle
+      if (i < tokens.length - 1) {
+        console.log(`⏳ ${DELAY_BETWEEN_BOTS/1000} saniye sonraki token...`);
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BOTS));
+      }
+
     } catch (error) {
-      return {
+      errors.push({
         token: maskToken(token),
-        token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
+        token_type: isSelf ? 'self_token' : 'bot_token',
         status: 'error',
         message: error.message,
-        start_order: index + 1
-      };
-    }
-  });
-
-  // Tüm promise'ları bekle
-  const results = await Promise.allSettled(promises);
-  
-  const successful = [];
-  const errors = [];
-  
-  results.forEach((result, index) => {
-    if (result.status === 'fulfilled') {
-      if (result.value.status === 'success') {
-        successful.push(result.value);
-        console.log(`✅ [${result.value.start_order}/${tokens.length}] BAŞARILI: ${result.value.bot_username}`);
-      } else {
-        errors.push(result.value);
-        console.log(`❌ [${result.value.start_order}/${tokens.length}] HATA: ${result.value.message}`);
-      }
-    } else {
-      errors.push({
-        token: maskToken(tokens[index]),
-        token_type: isSelfToken(tokens[index]) ? 'self_token' : 'bot_token',
-        status: 'error',
-        message: result.reason?.message || 'Bilinmeyen hata',
-        start_order: index + 1
+        start_order: i + 1
       });
-      console.log(`💥 [${index + 1}/${tokens.length}] PROMISE HATASI: ${result.reason}`);
+      
+      console.error(`❌ [${i + 1}/${tokens.length}] HATA: ${error.message}`);
+      
+      // Hata olsa bile 3 saniye bekle (rate limit koruması)
+      if (i < tokens.length - 1) {
+        console.log(`⏳ ${DELAY_BETWEEN_BOTS/1000} saniye sonraki token...`);
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BOTS));
+      }
     }
-  });
+  }
 
   const endTime = Date.now();
   console.log(`⏱️  Tüm tokenlar ${(endTime - startTime) / 1000} saniyede işlendi`);
   
-  return { results: successful, errors };
+  return { results, errors };
 }
 
 // API Handler
@@ -383,11 +339,11 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🤖 ${tokens.length} TOKEN AYNI ANDA BAŞLATILIYOR!`);
+    console.log(`🤖 ${tokens.length} TOKEN 3 SANIYE ARALIKLARLA BAŞLATILIYOR!`);
     console.log(`📊 Token Dağılımı: ${tokens.filter(t => isSelfToken(t)).length} Self, ${tokens.filter(t => !isSelfToken(t)).length} Bot`);
 
-    // TÜM TOKENLARI AYNI ANDA BAŞLAT
-    const { results, errors } = await startAllTokensParallel(tokens, channelId);
+    // 3 SANIYE ARALIKLI BAŞLATMA
+    const { results, errors } = await startTokensWithDelay(tokens, channelId);
 
     // RESPONSE
     return res.status(200).json({
@@ -401,7 +357,8 @@ export default async function handler(req, res) {
       },
       results: results,
       errors: errors,
-      message: `${results.length} token aynı anda başarıyla aktif edildi! ⚡`,
+      message: `${results.length} token başarıyla aktif edildi! (3s aralıklarla)`,
+      delay_between_bots: `${DELAY_BETWEEN_BOTS/1000}s`,
       timestamp: new Date().toISOString()
     });
 
