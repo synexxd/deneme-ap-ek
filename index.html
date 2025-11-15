@@ -3,52 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SynexAPI - API Servisleri</title>
+    <title>SynexAPI - Modern API Servisleri</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <div class="header-content">
-                <h1>🚀 SynexAPI</h1>
-                <p>Güvenilir ve Hızlı API Servisleri</p>
+        <!-- Hero Section -->
+        <section class="hero" id="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">🚀 SynexAPI</h1>
+                <p class="hero-subtitle">Modern, Hızlı ve Güvenilir API Çözümleri</p>
+                <p class="hero-description">
+                    Geliştiriciler için tasarlanmış, kullanımı kolay API servisleri. 
+                    Anime'den hava durumuna, döviz kurlarından QR kod oluşturmaya kadar birçok servis.
+                </p>
+                <button class="cta-button" onclick="showAPIs()">
+                    API'leri Keşfet
+                    <span class="arrow">→</span>
+                </button>
             </div>
-        </header>
+            <div class="hero-graphics">
+                <div class="graphic-card"></div>
+                <div class="graphic-card"></div>
+                <div class="graphic-card"></div>
+            </div>
+        </section>
 
-        <div class="api-cards">
-            <!-- 1. API Kartı: Anime -->
-            <div class="api-card">
-                <div class="api-header">
-                    <div class="method-badge post">POST</div>
-                    <div class="api-title">Anime</div>
+        <!-- API Listesi (Başlangıçta Gizli) -->
+        <section class="api-section" id="apiSection" style="display: none;">
+            <!-- Sayfa 1 API'leri -->
+            <div class="page-content" id="page1">
+                <div class="page-header">
+                    <button class="back-button" onclick="showHero()">
+                        ← Ana Sayfaya Dön
+                    </button>
+                    <h2>🌐 Temel API Servisleri</h2>
                 </div>
 
-                <div class="endpoint">/api/anime</div>
+                <div class="api-cards">
+                    <!-- 1. API Kartı: Anime -->
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge post">POST</div>
+                            <div class="api-title">Anime</div>
+                        </div>
 
-                <div class="description">
-                    Anime görselleri için geniş kütüphane
-                </div>
+                        <div class="endpoint">/api/anime</div>
 
-                <div class="parameters">
-                    <div class="section-title">Parametreler:</div>
-                    <div class="parameter">
-                        <div class="checkbox"></div>
-                        <div class="param-name">tag</div>
-                        <div class="param-desc">Anime etiketi</div>
-                    </div>
-                    <div class="parameter">
-                        <div class="checkbox checked">✓</div>
-                        <div class="param-name">amount</div>
-                        <div class="param-desc">Resim miktarı</div>
-                    </div>
-                </div>
+                        <div class="description">
+                            Anime görselleri için geniş kütüphane. Rastgele anime resimleri alın.
+                        </div>
 
-                <div class="response-section">
-                    <div class="response-header" onclick="toggleResponse('anime')">
-                        <div class="section-title">Dönüş:</div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="response-code" id="responseAnime">{
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('anime')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responseAnime">{
   "endpoint": "/api/anime",
   "images": [
     {
@@ -56,50 +67,35 @@
     }
   ]
 }</div>
-                </div>
+                        </div>
 
-                <div class="api-footer">
-                    <div class="date">08.02.2025</div>
-                    <button class="copy-btn" onclick="copyToClipboard('anime')">
-                        Kopyala
-                    </button>
-                    <span class="success-message" id="successAnime">Kopyalandı!</span>
-                </div>
-            </div>
-
-            <!-- 2. API Kartı: Deprem -->
-            <div class="api-card">
-                <div class="api-header">
-                    <div class="method-badge get">GET</div>
-                    <div class="api-title">Deprem</div>
-                </div>
-
-                <div class="endpoint">/api/deprem</div>
-
-                <div class="description">
-                    AFAD'dan gerçek zamanlı deprem verileri
-                </div>
-
-                <div class="parameters">
-                    <div class="section-title">Parametreler:</div>
-                    <div class="parameter">
-                        <div class="checkbox"></div>
-                        <div class="param-name">city</div>
-                        <div class="param-desc">Şehir filtresi</div>
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('anime')">
+                                Kodu Kopyala
+                            </button>
+                            <span class="success-message" id="successAnime">Kopyalandı!</span>
+                        </div>
                     </div>
-                    <div class="parameter">
-                        <div class="checkbox checked">✓</div>
-                        <div class="param-name">amount</div>
-                        <div class="param-desc">Kayıt sayısı (max: 200)</div>
-                    </div>
-                </div>
 
-                <div class="response-section">
-                    <div class="response-header" onclick="toggleResponse('deprem')">
-                        <div class="section-title">Dönüş:</div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="response-code" id="responseDeprem">{
+                    <!-- 2. API Kartı: Deprem -->
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge get">GET</div>
+                            <div class="api-title">Deprem</div>
+                        </div>
+
+                        <div class="endpoint">/api/deprem</div>
+
+                        <div class="description">
+                            AFAD'dan gerçek zamanlı deprem verileri. Son depremleri listeleyin.
+                        </div>
+
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('deprem')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responseDeprem">{
   "status": "success",
   "endpoint": "/api/deprem",
   "total": 3,
@@ -112,50 +108,35 @@
     }
   ]
 }</div>
-                </div>
+                        </div>
 
-                <div class="api-footer">
-                    <div class="date">08.02.2025</div>
-                    <button class="copy-btn" onclick="copyToClipboard('deprem')">
-                        Kopyala
-                    </button>
-                    <span class="success-message" id="successDeprem">Kopyalandı!</span>
-                </div>
-            </div>
-
-            <!-- 3. API Kartı: Weather -->
-            <div class="api-card">
-                <div class="api-header">
-                    <div class="method-badge get">GET</div>
-                    <div class="api-title">Weather</div>
-                </div>
-
-                <div class="endpoint">/api/weather</div>
-
-                <div class="description">
-                    Türkiye şehirleri için hava durumu bilgileri
-                </div>
-
-                <div class="parameters">
-                    <div class="section-title">Parametreler:</div>
-                    <div class="parameter">
-                        <div class="checkbox checked">✓</div>
-                        <div class="param-name">city</div>
-                        <div class="param-desc">Şehir adı</div>
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('deprem')">
+                                Kodu Kopyala
+                            </button>
+                            <span class="success-message" id="successDeprem">Kopyalandı!</span>
+                        </div>
                     </div>
-                    <div class="parameter">
-                        <div class="checkbox"></div>
-                        <div class="param-name">days</div>
-                        <div class="param-desc">Tahmin gün sayısı (1-7)</div>
-                    </div>
-                </div>
 
-                <div class="response-section">
-                    <div class="response-header" onclick="toggleResponse('weather')">
-                        <div class="section-title">Dönüş:</div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="response-code" id="responseWeather">{
+                    <!-- 3. API Kartı: Weather -->
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge get">GET</div>
+                            <div class="api-title">Weather</div>
+                        </div>
+
+                        <div class="endpoint">/api/weather</div>
+
+                        <div class="description">
+                            Türkiye şehirleri için hava durumu bilgileri. Güncel ve tahmin verileri.
+                        </div>
+
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('weather')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responseWeather">{
   "status": "success",
   "city": "Istanbul",
   "current": {
@@ -170,45 +151,35 @@
     }
   ]
 }</div>
-                </div>
+                        </div>
 
-                <div class="api-footer">
-                    <div class="date">08.02.2025</div>
-                    <button class="copy-btn" onclick="copyToClipboard('weather')">
-                        Kopyala
-                    </button>
-                    <span class="success-message" id="successWeather">Kopyalandı!</span>
-                </div>
-            </div>
-
-            <!-- 4. API Kartı: Döviz -->
-            <div class="api-card">
-                <div class="api-header">
-                    <div class="method-badge get">GET</div>
-                    <div class="api-title">Döviz</div>
-                </div>
-
-                <div class="endpoint">/api/doviz</div>
-
-                <div class="description">
-                    Güncel döviz kurları ve altın fiyatları
-                </div>
-
-                <div class="parameters">
-                    <div class="section-title">Parametreler:</div>
-                    <div class="parameter">
-                        <div class="checkbox"></div>
-                        <div class="param-name">base</div>
-                        <div class="param-desc">Baz döviz (usd, eur, gbp)</div>
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('weather')">
+                                Kodu Kopyala
+                            </button>
+                            <span class="success-message" id="successWeather">Kopyalandı!</span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="response-section">
-                    <div class="response-header" onclick="toggleResponse('doviz')">
-                        <div class="section-title">Dönüş:</div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="response-code" id="responseDoviz">{
+                    <!-- 4. API Kartı: Döviz -->
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge get">GET</div>
+                            <div class="api-title">Döviz</div>
+                        </div>
+
+                        <div class="endpoint">/api/doviz</div>
+
+                        <div class="description">
+                            Güncel döviz kurları ve altın fiyatları. Anlık piyasa verileri.
+                        </div>
+
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('doviz')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responseDoviz">{
   "status": "success",
   "currencies": {
     "USD": {
@@ -223,43 +194,242 @@
     }
   }
 }</div>
+                        </div>
+
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('doviz')">
+                                Kodu Kopyala
+                            </button>
+                            <span class="success-message" id="successDoviz">Kopyalandı!</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="api-footer">
-                    <div class="date">08.02.2025</div>
-                    <button class="copy-btn" onclick="copyToClipboard('doviz')">
-                        Kopyala
+                <!-- Sayfalama Butonları -->
+                <div class="pagination">
+                    <button class="page-btn prev" onclick="changePage('prev')" disabled>
+                        ←
                     </button>
-                    <span class="success-message" id="successDoviz">Kopyalandı!</span>
+                    <button class="page-btn page-1 active" onclick="changePage(1)">
+                        1
+                    </button>
+                    <button class="page-btn page-2" onclick="changePage(2)">
+                        2
+                    </button>
+                    <button class="page-btn next" onclick="changePage('next')">
+                        →
+                    </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Sayfalama Butonları -->
-        <div class="pagination">
-            <button class="page-btn prev" onclick="goToPage('prev')" disabled>
-                ←
-            </button>
-            <button class="page-btn page-1 active" onclick="goToPage(1)">
-                1
-            </button>
-            <button class="page-btn page-2" onclick="goToPage(2)">
-                2
-            </button>
-            <button class="page-btn next" onclick="goToPage('next')">
-                →
-            </button>
-        </div>
+            <!-- Sayfa 2 API'leri -->
+            <div class="page-content" id="page2" style="display: none;">
+                <div class="page-header">
+                    <button class="back-button" onclick="showHero()">
+                        ← Ana Sayfaya Dön
+                    </button>
+                    <h2>🔧 Gelişmiş API Servisleri</h2>
+                </div>
+
+                <div class="api-cards">
+                    <!-- QR Code API Kartı -->
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge get">GET</div>
+                            <div class="method-badge post">POST</div>
+                            <div class="api-title">QR Code</div>
+                        </div>
+
+                        <div class="endpoint">/api/qrcode</div>
+
+                        <div class="description">
+                            Metin, URL veya herhangi bir veriyi QR koda dönüştürün. GET ve POST desteği.
+                        </div>
+
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('qrcode')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responseQrcode">{
+  "status": "success",
+  "endpoint": "/api/qrcode",
+  "method": "GET/POST",
+  "qr_code_url": "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Hello%20World",
+  "data": "Hello World",
+  "size": "150x150",
+  "character_count": 11,
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}</div>
+                        </div>
+
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('qrcode')">
+                                Kodu Kopyala
+                            </button>
+                            <span class="success-message" id="successQrcode">Kopyalandı!</span>
+                        </div>
+                    </div>
+
+                    <!-- Population API Kartı -->
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge get">GET</div>
+                            <div class="api-title">Population</div>
+                        </div>
+
+                        <div class="endpoint">/api/population</div>
+
+                        <div class="description">
+                            Dünya ülkelerinin nüfus bilgileri. Gerçek zamanlı verilerle çalışır.
+                        </div>
+
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('population')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responsePopulation">{
+  "status": "success",
+  "endpoint": "/api/population",
+  "method": "GET",
+  "total_countries": 50,
+  "total_population": 4500000000,
+  "countries": [
+    {
+      "name": {
+        "common": "Turkey",
+        "official": "Republic of Turkey"
+      },
+      "population": 84339067
+    }
+  ],
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}</div>
+                        </div>
+
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('population')">
+                                Kodu Kopyala
+                            </button>
+                            <span class="success-message" id="successPopulation">Kopyalandı!</span>
+                        </div>
+                    </div>
+
+                    <!-- IP Info API Kartı -->
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge get">GET</div>
+                            <div class="api-title">IP Info</div>
+                        </div>
+
+                        <div class="endpoint">/api/ipinfo</div>
+
+                        <div class="description">
+                            IP adresi konum, ISP ve coğrafi bilgileri. Kendi IP'nizi veya başka IP'leri sorgulayın.
+                        </div>
+
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('ipinfo')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responseIpinfo">{
+  "status": "success",
+  "endpoint": "/api/ipinfo",
+  "method": "GET",
+  "query_ip": "79.127.184.108",
+  "data": {
+    "ip": "79.127.184.108",
+    "location": {
+      "country": "Turkey",
+      "city": "Istanbul",
+      "lat": 41.0082,
+      "lon": 28.9784
+    },
+    "isp": {
+      "isp": "Turk Telekom",
+      "org": "Turk Telekom"
+    }
+  },
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}</div>
+                        </div>
+
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('ipinfo')">
+                                Kodu Kopyala
+                            </button>
+                            <span class="success-message" id="successIpinfo">Kopyalandı!</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sayfalama Butonları -->
+                <div class="pagination">
+                    <button class="page-btn prev" onclick="changePage('prev')">
+                        ←
+                    </button>
+                    <button class="page-btn page-1" onclick="changePage(1)">
+                        1
+                    </button>
+                    <button class="page-btn page-2 active" onclick="changePage(2)">
+                        2
+                    </button>
+                    <button class="page-btn next" onclick="changePage('next')" disabled>
+                        →
+                    </button>
+                </div>
+            </div>
+        </section>
     </div>
 
     <script>
-        // Sayfa yönlendirme fonksiyonu
-        function goToPage(page) {
-            if (page === 1) {
-                window.location.href = 'index.html';
-            } else if (page === 2) {
-                window.location.href = 'page2.html';
+        // Sayfa yönlendirme
+        let currentPage = 1;
+
+        function showAPIs() {
+            document.getElementById('hero').style.display = 'none';
+            document.getElementById('apiSection').style.display = 'block';
+            document.getElementById('page1').style.display = 'block';
+        }
+
+        function showHero() {
+            document.getElementById('hero').style.display = 'block';
+            document.getElementById('apiSection').style.display = 'none';
+        }
+
+        function changePage(page) {
+            if (page === 'prev' && currentPage > 1) {
+                currentPage--;
+            } else if (page === 'next' && currentPage < 2) {
+                currentPage++;
+            } else if (typeof page === 'number') {
+                currentPage = page;
             }
+
+            // Tüm sayfaları gizle
+            document.getElementById('page1').style.display = 'none';
+            document.getElementById('page2').style.display = 'none';
+
+            // Aktif sayfayı göster
+            document.getElementById('page' + currentPage).style.display = 'block';
+
+            // Buton durumlarını güncelle
+            updatePaginationButtons();
+        }
+
+        function updatePaginationButtons() {
+            const prevBtn = document.querySelector('.page-btn.prev');
+            const nextBtn = document.querySelector('.page-btn.next');
+            const page1Btn = document.querySelector('.page-btn.page-1');
+            const page2Btn = document.querySelector('.page-btn.page-2');
+
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === 2;
+
+            page1Btn.classList.toggle('active', currentPage === 1);
+            page2Btn.classList.toggle('active', currentPage === 2);
         }
 
         // Response bölümlerini açıp kapama
@@ -334,6 +504,56 @@
     }
   }
 }`;
+            } else if (type === 'qrcode') {
+                responseCode = `{
+  "status": "success",
+  "endpoint": "/api/qrcode",
+  "method": "GET/POST",
+  "qr_code_url": "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Hello%20World",
+  "data": "Hello World",
+  "size": "150x150",
+  "character_count": 11,
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}`;
+            } else if (type === 'population') {
+                responseCode = `{
+  "status": "success",
+  "endpoint": "/api/population",
+  "method": "GET",
+  "total_countries": 50,
+  "total_population": 4500000000,
+  "countries": [
+    {
+      "name": {
+        "common": "Turkey",
+        "official": "Republic of Turkey"
+      },
+      "population": 84339067
+    }
+  ],
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}`;
+            } else if (type === 'ipinfo') {
+                responseCode = `{
+  "status": "success",
+  "endpoint": "/api/ipinfo",
+  "method": "GET",
+  "query_ip": "79.127.184.108",
+  "data": {
+    "ip": "79.127.184.108",
+    "location": {
+      "country": "Turkey",
+      "city": "Istanbul",
+      "lat": 41.0082,
+      "lon": 28.9784
+    },
+    "isp": {
+      "isp": "Turk Telekom",
+      "org": "Turk Telekom"
+    }
+  },
+  "timestamp": "2024-01-15T14:30:00.000Z"
+}`;
             }
             
             navigator.clipboard.writeText(responseCode).then(() => {
@@ -345,20 +565,6 @@
                 }, 2000);
             });
         }
-
-        // Checkbox animasyonu
-        document.querySelectorAll('.parameter').forEach(item => {
-            item.addEventListener('click', function() {
-                const checkbox = this.querySelector('.checkbox');
-                checkbox.classList.toggle('checked');
-                
-                if (checkbox.classList.contains('checked')) {
-                    checkbox.innerHTML = '✓';
-                } else {
-                    checkbox.innerHTML = '';
-                }
-            });
-        });
 
         // Sayfa yüklendiğinde response bölümlerini kapalı yap
         document.addEventListener('DOMContentLoaded', function() {
