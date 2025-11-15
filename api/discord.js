@@ -1,4 +1,4 @@
-// api/discord.js - ACİL FIX
+// api/discord.js - ClientReady Fix
 import { Client, GatewayIntentBits } from 'discord.js';
 import { joinVoiceChannel } from '@discordjs/voice';
 
@@ -10,13 +10,13 @@ if (!global.activeBots) {
 const activeBots = global.activeBots;
 const DELAY_BETWEEN_BOTS = 3000; // 3 saniye
 
-// Basit token maskeleme
+// Token maskeleme
 function maskToken(token) {
   if (!token) return '???';
   return `${token.substring(0, 10)}...${token.substring(token.length - 5)}`;
 }
 
-// Basit bot başlatma - EVENT PROBLEMI FIX
+// ClientReady ile bot başlatma
 async function startBot(token, channelId) {
   return new Promise(async (resolve, reject) => {
     let client;
@@ -25,7 +25,7 @@ async function startBot(token, channelId) {
     try {
       console.log(`🚀 Bot başlatılıyor: ${maskToken(token)}`);
       
-      // Basit client
+      // Client oluştur
       client = new Client({
         intents: [
           GatewayIntentBits.Guilds,
@@ -33,12 +33,12 @@ async function startBot(token, channelId) {
         ]
       });
 
-      // TEK EVENT - ready kullan, clientReady ile uğraşma
-      client.once('ready', async (c) => {
+      // CLIENTREADY EVENT - BU SEFER ÇALIŞACAK
+      client.once('clientReady', async (c) => {
+        console.log(`✅ ClientReady tetiklendi: ${c.user.tag}`);
+        
         if (resolved) return;
         resolved = true;
-        
-        console.log(`✅ Bot hazır: ${c.user.tag}`);
         
         try {
           // Kanalı al
@@ -46,6 +46,8 @@ async function startBot(token, channelId) {
           if (!channel || channel.type !== 2) {
             throw new Error('Geçersiz ses kanalı');
           }
+
+          console.log(`🎵 ${c.user.tag} kanala bağlanıyor: ${channel.name}`);
 
           // Ses bağlantısı kur
           const voiceConnection = joinVoiceChannel({
@@ -56,7 +58,12 @@ async function startBot(token, channelId) {
             selfMute: true
           });
 
-          console.log(`🎵 ${c.user.tag} ses kanalına bağlandı: ${channel.name}`);
+          // Bağlantı hazır olunca
+          voiceConnection.on('stateChange', (oldState, newState) => {
+            if (newState.status === 'ready') {
+              console.log(`🔊 ${c.user.tag} ses bağlantısı hazır`);
+            }
+          });
 
           // State'i kaydet
           activeBots.set(token, {
@@ -79,7 +86,12 @@ async function startBot(token, channelId) {
         }
       });
 
-      // Hata handling
+      // Ready event fallback (sadece debug için)
+      client.once('ready', (c) => {
+        console.log(`ℹ️  Ready event tetiklendi: ${c.user.tag}`);
+      });
+
+      // Error handling
       client.on('error', (error) => {
         console.error(`❌ Bot hatası:`, error.message);
         if (!resolved) {
@@ -88,21 +100,35 @@ async function startBot(token, channelId) {
         }
       });
 
-      // Timeout
+      // Debug info
+      client.on('debug', (info) => {
+        if (info.includes('Authenticated') || info.includes('Session')) {
+          console.log(`🔍 ${maskToken(token)}: ${info.substring(0, 80)}`);
+        }
+      });
+
+      // Timeout (30 saniye)
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          reject(new Error('Bot başlatma timeout (20s)'));
+          console.error(`⏰ Timeout: ${maskToken(token)}`);
+          reject(new Error('Bot başlatma timeout (30s)'));
         }
-      }, 20000);
+      }, 30000);
 
-      // Login
+      console.log(`🔐 Login başlatılıyor: ${maskToken(token)}`);
+      
+      // Login işlemi
       await client.login(token);
+      
+      console.log(`🔓 Login başarılı: ${maskToken(token)}`);
       clearTimeout(timeout);
 
     } catch (error) {
       console.error(`💥 Başlatma hatası:`, error.message);
-      if (client) client.destroy().catch(() => {});
+      if (client && !client.destroyed) {
+        client.destroy().catch(() => {});
+      }
       reject(error);
     }
   });
@@ -110,29 +136,32 @@ async function startBot(token, channelId) {
 
 // 3 saniye aralıklı başlatma
 async function startBotsSequentially(tokens, channelId) {
-  console.log(`🤖 ${tokens.length} TOKEN 3 SANIYE ARALIKLARLA BAŞLATILIYOR`);
+  console.log(`🤖 ${tokens.length} TOKEN BAŞLATILIYOR (3s aralıklarla)`);
   
   const results = [];
   const errors = [];
 
   // Önce temizlik
+  console.log('🧹 Eski botlar temizleniyor...');
   tokens.forEach(token => {
     if (activeBots.has(token)) {
       const bot = activeBots.get(token);
-      if (bot.client) bot.client.destroy().catch(() => {});
-      if (bot.voiceConnection) bot.voiceConnection.destroy();
+      try {
+        if (bot.voiceConnection) bot.voiceConnection.destroy();
+        if (bot.client) bot.client.destroy();
+      } catch (e) {}
       activeBots.delete(token);
     }
   });
 
   await new Promise(resolve => setTimeout(resolve, 2000));
 
-  // Sırayla başlat
+  // Token'ları sırayla başlat
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     
     try {
-      console.log(`\n🔧 [${i + 1}/${tokens.length}] Başlatılıyor...`);
+      console.log(`\n🔧 [${i + 1}/${tokens.length}] Başlatılıyor: ${maskToken(token)}`);
       
       const result = await startBot(token, channelId);
       
@@ -141,7 +170,8 @@ async function startBotsSequentially(tokens, channelId) {
         status: 'success',
         bot_username: result.botUsername,
         user_id: result.userId,
-        connected: true
+        connected: true,
+        order: i + 1
       });
 
       console.log(`✅ [${i + 1}/${tokens.length}] BAŞARILI: ${result.botUsername}`);
@@ -156,7 +186,8 @@ async function startBotsSequentially(tokens, channelId) {
       errors.push({
         token: maskToken(token),
         status: 'error',
-        message: error.message
+        message: error.message,
+        order: i + 1
       });
       
       console.error(`❌ [${i + 1}/${tokens.length}] HATA: ${error.message}`);
@@ -168,16 +199,23 @@ async function startBotsSequentially(tokens, channelId) {
     }
   }
 
+  console.log(`🎯 İşlem tamamlandı: ${results.length} başarılı, ${errors.length} hatalı`);
   return { results, errors };
 }
 
 // API Handler
 export default async function handler(req, res) {
-  // CORS
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  res.setHeader('Access-Control-Allow-Headers', 
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   try {
     let tokens = [];
@@ -185,23 +223,48 @@ export default async function handler(req, res) {
 
     // Request parsing
     if (req.method === 'GET') {
-      const { tokens: tokensParam, channel_id } = req.query;
-      tokens = tokensParam ? tokensParam.split(',') : [];
+      const { token, tokens: tokensParam, channel_id } = req.query;
+      
+      if (tokensParam) {
+        tokens = Array.isArray(tokensParam) ? tokensParam : tokensParam.split(',');
+      } else if (token) {
+        tokens = Array.isArray(token) ? token : [token];
+      }
+      
       channelId = channel_id;
-    } else {
+      
+    } else if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const { tokens: tokensParam, channel_id } = body;
-      tokens = tokensParam ? (Array.isArray(tokensParam) ? tokensParam : tokensParam.split(',')) : [];
+      const { token, tokens: tokensParam, channel_id } = body;
+      
+      if (tokensParam) {
+        tokens = Array.isArray(tokensParam) ? tokensParam : tokensParam.split(',');
+      } else if (token) {
+        tokens = Array.isArray(token) ? token : [token];
+      }
+      
       channelId = channel_id;
     }
 
     // Validation
-    tokens = tokens.filter(token => token && token.length > 10);
-    
-    if (tokens.length === 0 || !channelId) {
+    tokens = tokens
+      .filter(token => token && typeof token === 'string')
+      .map(token => token.trim())
+      .filter(token => token.length > 10);
+
+    console.log('🔍 Alınan tokenlar:', tokens.map(t => maskToken(t)));
+
+    if (tokens.length === 0) {
       return res.status(400).json({
         status: 'error',
-        message: 'Token ve channel_id gerekli'
+        message: 'Geçerli token gereklidir'
+      });
+    }
+
+    if (!channelId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Channel ID gereklidir'
       });
     }
 
@@ -211,20 +274,20 @@ export default async function handler(req, res) {
     const { results, errors } = await startBotsSequentially(tokens, channelId);
 
     // Response
-    res.status(200).json({
+    return res.status(200).json({
       status: 'completed',
-      total: tokens.length,
+      total_tokens: tokens.length,
       successful: results.length,
       failed: errors.length,
-      results,
-      errors,
-      message: `${results.length} bot başarıyla bağlandı!`,
+      results: results,
+      errors: errors,
+      message: `${results.length} bot clientReady ile başarıyla bağlandı! 🚀`,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     console.error('Handler error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 'error',
       message: error.message,
       timestamp: new Date().toISOString()
@@ -234,10 +297,12 @@ export default async function handler(req, res) {
 
 // Cleanup
 process.on('SIGTERM', () => {
-  console.log('🔚 Temizlik...');
+  console.log('🔚 Temizlik yapılıyor...');
   activeBots.forEach((bot, token) => {
-    if (bot.client) bot.client.destroy().catch(() => {});
-    if (bot.voiceConnection) bot.voiceConnection.destroy();
+    try {
+      if (bot.voiceConnection) bot.voiceConnection.destroy();
+      if (bot.client) bot.client.destroy();
+    } catch (e) {}
   });
   activeBots.clear();
 });
