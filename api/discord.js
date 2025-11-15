@@ -1,9 +1,46 @@
-// api/discord.js - 1 SANİYELİK KONTROL SİSTEMİ
+// api/discord.js - ÇOKLU TOKEN DESTEKLİ SİSTEM
 import { Client, GatewayIntentBits } from 'discord.js';
-import { joinVoiceChannel, getVoiceConnection } from '@discordjs/voice';
+import { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 
-// Aktif botlar
 const activeBots = new Map();
+const MAX_BOT_LIFETIME = 30 * 60 * 1000; // 30 dakika
+const CHECK_INTERVAL = 5000; // 5 saniye
+const RECONNECT_DELAY = 2000; // 2 saniye
+
+// Bot temizleme fonksiyonu
+function cleanupBot(token) {
+  if (activeBots.has(token)) {
+    const bot = activeBots.get(token);
+    console.log(`🧹 Bot temizleniyor: ${token.substring(0, 10)}...`);
+    
+    if (bot.checkInterval) clearInterval(bot.checkInterval);
+    if (bot.cleanupInterval) clearInterval(bot.cleanupInterval);
+    
+    try {
+      if (bot.voiceConnection) {
+        bot.voiceConnection.destroy();
+      }
+      if (bot.client && bot.client.isReady()) {
+        bot.client.destroy();
+      }
+    } catch (error) {
+      console.error('Temizleme hatası:', error);
+    }
+    
+    activeBots.delete(token);
+  }
+}
+
+// Düzenli temizlik
+setInterval(() => {
+  const now = Date.now();
+  activeBots.forEach((bot, token) => {
+    if (now - bot.connectedAt > MAX_BOT_LIFETIME) {
+      console.log(`⏰ Bot zaman aşımı: ${token.substring(0, 10)}...`);
+      cleanupBot(token);
+    }
+  });
+}, 60000);
 
 export default async function handler(req, res) {
   // CORS headers
@@ -13,18 +50,19 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   try {
-    let token, channelId;
+    let tokens = [];
+    let channelId;
 
+    // Token ve channel_id'yi al
     if (req.method === 'GET') {
-      token = req.query.token;
+      tokens = req.query.tokens ? req.query.tokens.split(',') : [req.query.token];
       channelId = req.query.channel_id;
     } else if (req.method === 'POST') {
-      token = req.body.token;
+      tokens = req.body.tokens ? req.body.tokens.split(',') : [req.body.token];
       channelId = req.body.channel_id;
     } else {
       return res.status(405).json({
@@ -33,10 +71,13 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!token) {
+    // Tokenları temizle (boşlukları kaldır)
+    tokens = tokens.map(token => token.trim()).filter(token => token);
+
+    if (!tokens || tokens.length === 0) {
       return res.status(400).json({
         status: 'error',
-        message: 'Bot token gereklidir'
+        message: 'En az bir bot token gereklidir'
       });
     }
 
@@ -47,45 +88,65 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🤖 BOT AKTİF EDİLİYOR: ${channelId}`);
+    console.log(`🤖 ${tokens.length} BOT AKTİF EDİLİYOR: ${channelId}`);
 
-    // Eski bot varsa temizle
-    if (activeBots.has(token)) {
-      const oldBot = activeBots.get(token);
-      if (oldBot.voiceConnection) oldBot.voiceConnection.destroy();
-      if (oldBot.client) oldBot.client.destroy();
-      clearInterval(oldBot.checkInterval);
-      activeBots.delete(token);
+    const results = [];
+    const errors = [];
+
+    // Tüm tokenlar için bot başlat
+    for (const token of tokens) {
+      try {
+        // Eski bot varsa temizle
+        if (activeBots.has(token)) {
+          cleanupBot(token);
+        }
+
+        // Yeni botu başlat
+        const result = await startBot(token, channelId);
+        results.push({
+          token: token.substring(0, 10) + '...', // Güvenlik için kısmi gösterim
+          status: 'success',
+          bot_username: result.botUsername,
+          connected: true
+        });
+        
+        console.log(`✅ Bot başlatıldı: ${result.botUsername}`);
+        
+      } catch (error) {
+        errors.push({
+          token: token.substring(0, 10) + '...',
+          status: 'error',
+          message: error.message
+        });
+        console.error(`❌ Bot hatası (${token.substring(0, 10)}...):`, error.message);
+      }
     }
 
-    // YENİ BOTU BAŞLAT
-    const result = await startUltraBot(token, channelId);
-    
+    // Başarılı ve başarısız sonuçları döndür
     res.status(200).json({
-      status: 'success',
-      endpoint: '/api/discord',
-      method: req.method,
-      channel_id: channelId,
-      bot_username: result.botUsername,
-      connected: true,
-      message: 'Bot aktif! 1 SANİYEDE BİR kontrol edilecek! ⚡',
-      check_interval: '1 second',
+      status: 'completed',
+      total_tokens: tokens.length,
+      successful: results.length,
+      failed: errors.length,
+      results: results,
+      errors: errors,
+      message: `${results.length} bot başarıyla aktif edildi!`,
+      check_interval: `${CHECK_INTERVAL/1000} saniye`,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('Bot Hatası:', error);
+    console.error('Genel hata:', error);
     res.status(500).json({
       status: 'error',
       message: error.message,
-      connected: false,
       timestamp: new Date().toISOString()
     });
   }
 }
 
-// ULTRA BOT - 1 SANİYELİK KONTROL
-async function startUltraBot(token, channelId) {
+// BOT BAŞLATMA FONKSİYONU
+async function startBot(token, channelId) {
   return new Promise(async (resolve, reject) => {
     try {
       const client = new Client({
@@ -95,28 +156,33 @@ async function startUltraBot(token, channelId) {
         ]
       });
 
-      let voiceConnection = null;
       let checkInterval = null;
 
-      // BOT HAZIR OLUNCA
+      // Bot hazır olunca
       client.once('ready', async (c) => {
         console.log(`✅ BOT HAZIR: ${c.user.tag}`);
         
-        // İLK BAĞLANTIYI KUR
-        await connectToVoice(client, channelId);
+        // İlk bağlantıyı kur
+        const voiceConnection = await connectToVoice(client, channelId);
         
-        // 1 SANİYELİK KONTROL DÖNGÜSÜNÜ BAŞLAT
+        if (!voiceConnection) {
+          reject(new Error('Ses kanalına bağlanılamadı'));
+          return;
+        }
+
+        // Kontrol döngüsünü başlat
         checkInterval = setInterval(async () => {
           await checkAndReconnect(client, channelId, token);
-        }, 1000); // 1 SANİYE!
-        
-        // AKTİF BOTLARA KAYDET
+        }, CHECK_INTERVAL);
+
+        // Aktif botlara kaydet
         activeBots.set(token, {
           client: client,
           voiceConnection: voiceConnection,
           channelId: channelId,
           checkInterval: checkInterval,
-          connectedAt: new Date()
+          connectedAt: new Date(),
+          botUsername: c.user.tag
         });
 
         resolve({
@@ -126,7 +192,12 @@ async function startUltraBot(token, channelId) {
       });
 
       client.on('error', (error) => {
-        console.error('❌ Bot hatası:', error);
+        console.error(`❌ Bot hatası (${token.substring(0, 10)}...):`, error);
+      });
+
+      // Token geçersizse hata ver
+      client.on('invalidated', () => {
+        reject(new Error('Token geçersiz veya bot yetkisi yok'));
       });
 
       await client.login(token);
@@ -143,8 +214,7 @@ async function connectToVoice(client, channelId) {
     const channel = await client.channels.fetch(channelId);
     
     if (!channel || channel.type !== 2) {
-      console.log('❌ Kanal bulunamadı veya ses kanalı değil');
-      return false;
+      throw new Error('Kanal bulunamadı veya ses kanalı değil');
     }
 
     console.log(`🎵 Kanala bağlanılıyor: ${channel.name}`);
@@ -157,19 +227,34 @@ async function connectToVoice(client, channelId) {
       selfMute: true
     });
 
-    console.log(`✅ Bağlantı kuruldu: ${channel.name}`);
+    // Bağlantı eventlerini dinle
+    voiceConnection.on(VoiceConnectionStatus.Disconnected, async () => {
+      console.log('🔌 Ses bağlantısı kesildi, yeniden bağlanılıyor...');
+      setTimeout(async () => {
+        try {
+          voiceConnection.destroy();
+          await connectToVoice(client, channelId);
+        } catch (error) {
+          console.error('Yeniden bağlanma hatası:', error);
+        }
+      }, RECONNECT_DELAY);
+    });
+
+    voiceConnection.on(VoiceConnectionStatus.Ready, () => {
+      console.log('✅ Ses bağlantısı hazır');
+    });
+
     return voiceConnection;
     
   } catch (error) {
     console.error('❌ Bağlantı hatası:', error);
-    return false;
+    throw error;
   }
 }
 
 // KONTROL ET VE YENİDEN BAĞLAN
 async function checkAndReconnect(client, channelId, token) {
   try {
-    // Kanalı al
     const channel = await client.channels.fetch(channelId);
     
     if (!channel || channel.type !== 2) {
@@ -177,52 +262,39 @@ async function checkAndReconnect(client, channelId, token) {
       return;
     }
 
-    // Botun ses durumunu kontrol et
     const guild = channel.guild;
     const voiceStates = guild.voiceStates.cache;
     const botVoiceState = voiceStates.get(client.user.id);
     
-    // BOT SESTE Mİ? 🤔
     const isInVoice = botVoiceState && botVoiceState.channelId === channelId;
     
     if (!isInVoice) {
-      console.log('🚨 BOT SESTE DEĞİL! HEMEN BAĞLANIYOR...');
+      console.log('🚨 BOT SESTE DEĞİL! YENİDEN BAĞLANIYOR...');
       
-      // Eski bağlantıyı temizle
       const oldConnection = getVoiceConnection(guild.id);
       if (oldConnection) {
         oldConnection.destroy();
       }
       
-      // HEMEN YENİDEN BAĞLAN
       await connectToVoice(client, channelId);
-      
-    } else {
-      // Bot seste - her 10 kontrolde bir logla (spam önlemek için)
-      if (Math.random() < 0.1) { // %10 ihtimal
-        console.log('✅ Bot hala seste!');
-      }
     }
     
   } catch (error) {
     console.error('❌ Kontrol hatası:', error);
-    
-    // Hata olursa yeniden bağlanmayı dene
-    setTimeout(async () => {
-      await connectToVoice(client, channelId);
-    }, 1000);
   }
 }
 
-// TÜM BOTLARI KONTROL ET (ek güvenlik)
-setInterval(() => {
-  activeBots.forEach(async (bot, token) => {
-    if (bot.client && bot.channelId) {
-      try {
-        await checkAndReconnect(bot.client, bot.channelId, token);
-      } catch (error) {
-        console.error(`Bot kontrol hatası (${token.substring(0, 10)}...):`, error);
-      }
-    }
+// Aktif botları listeleme endpoint'i (opsiyonel)
+export async function getActiveBots() {
+  const bots = [];
+  activeBots.forEach((bot, token) => {
+    bots.push({
+      token: token.substring(0, 10) + '...',
+      username: bot.botUsername,
+      channelId: bot.channelId,
+      connectedAt: bot.connectedAt,
+      uptime: Date.now() - bot.connectedAt
+    });
   });
-}, 5000); // 5 saniyede bir tüm botları kontrol et
+  return bots;
+}
