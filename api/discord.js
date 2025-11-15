@@ -1,11 +1,12 @@
-// api/discord.js - SELF TOKEN FIX SİSTEMİ
-import { Client, GatewayIntentBits, OAuth2Scopes } from 'discord.js';
+// api/discord.js - SELF TOKEN AUTH SİSTEMİ
+import { Client, GatewayIntentBits } from 'discord.js';
 import { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
+import fetch from 'node-fetch';
 
 const activeBots = new Map();
-const MAX_BOT_LIFETIME = 60 * 60 * 1000; // 1 saat
-const CHECK_INTERVAL = 15000; // 15 saniye (self token için daha güvenli)
-const RECONNECT_DELAY = 5000; // 5 saniye
+const MAX_BOT_LIFETIME = 60 * 60 * 1000;
+const CHECK_INTERVAL = 15000;
+const RECONNECT_DELAY = 5000;
 
 // Bot temizleme fonksiyonu
 function cleanupBot(token) {
@@ -37,26 +38,52 @@ function maskToken(token) {
   return token.substring(0, 10) + '...' + token.substring(token.length - 5);
 }
 
-// Self token kontrolü (geliştirilmiş)
+// Self token kontrolü
 function isSelfToken(token) {
   if (!token || typeof token !== 'string') return false;
   
-  // Bot token formatı: MTExxxx.x.x (3 parçalı base64)
-  // Self token formatı: xxx (tek parça, genellikle daha uzun)
+  // Bot token: MTExxxx.x.x formatında (3 parça)
+  // Self token: genellikle tek parça ve daha uzun
   const parts = token.split('.');
-  
-  if (parts.length === 3) {
-    // Bot token kontrolü
-    try {
-      // İlk parça base64 mi kontrol et
-      atob(parts[0]);
-      return false; // Bot token
-    } catch {
-      return true; // Self token (base64 değil)
+  return parts.length !== 3;
+}
+
+// Self Token Validation
+async function validateSelfToken(token) {
+  try {
+    console.log(`🔐 Self token doğrulanıyor: ${maskToken(token)}`);
+    
+    const response = await fetch('https://discord.com/api/v10/users/@me', {
+      method: 'GET',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 401) {
+      throw new Error('Self token geçersiz veya süresi dolmuş');
     }
+
+    if (!response.ok) {
+      throw new Error(`Token validation failed: ${response.status}`);
+    }
+
+    const userData = await response.json();
+    console.log(`✅ Self token doğrulandı: ${userData.username}#${userData.discriminator}`);
+    
+    return {
+      valid: true,
+      user: userData,
+      requires2FA: userData.mfa_enabled || false
+    };
+  } catch (error) {
+    console.error(`❌ Self token doğrulama hatası:`, error.message);
+    return {
+      valid: false,
+      error: error.message
+    };
   }
-  
-  return true; // Tek parça ise self token
 }
 
 // Düzenli temizlik
@@ -85,7 +112,7 @@ export default async function handler(req, res) {
     let tokens = [];
     let channelId;
 
-    // Token ve channel_id'yi al
+    // Request parsing
     if (req.method === 'GET') {
       tokens = req.query.tokens ? 
         (Array.isArray(req.query.tokens) ? req.query.tokens : req.query.tokens.split(',')) 
@@ -97,14 +124,9 @@ export default async function handler(req, res) {
         (Array.isArray(body.tokens) ? body.tokens : body.tokens.split(',')) 
         : [body.token].filter(Boolean);
       channelId = body.channel_id;
-    } else {
-      return res.status(405).json({
-        status: 'error',
-        message: 'Sadece GET ve POST methodu destekleniyor'
-      });
     }
 
-    // Tokenları temizle
+    // Token validation
     tokens = tokens
       .filter(token => token && typeof token === 'string')
       .map(token => token.trim())
@@ -124,50 +146,58 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🤖 ${tokens.length} TOKEN AKTİF EDİLİYOR: ${channelId}`);
-    console.log(`🔍 Token Tipleri: ${tokens.map(t => isSelfToken(t) ? 'Self' : 'Bot').join(', ')}`);
+    console.log(`🤖 ${tokens.length} TOKEN İŞLENİYOR: ${channelId}`);
 
     const results = [];
     const errors = [];
 
-    // Tokenları paralel işle
-    await Promise.all(
-      tokens.map(async (token) => {
-        try {
-          // Eski bot varsa temizle
-          if (activeBots.has(token)) {
-            cleanupBot(token);
-            await new Promise(resolve => setTimeout(resolve, 1000));
+    // Process tokens sequentially to avoid rate limits
+    for (const token of tokens) {
+      try {
+        const isSelf = isSelfToken(token);
+        
+        // Self token validation
+        if (isSelf) {
+          const validation = await validateSelfToken(token);
+          if (!validation.valid) {
+            throw new Error(`Self token geçersiz: ${validation.error}`);
           }
-
-          // Yeni botu başlat
-          const result = await startBot(token, channelId);
-          results.push({
-            token: maskToken(token),
-            token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
-            status: 'success',
-            bot_username: result.botUsername,
-            user_id: result.userId,
-            connected: true,
-            session_id: result.sessionId
-          });
-          
-          console.log(`✅ ${isSelfToken(token) ? 'SELF TOKEN' : 'BOT'} başlatıldı: ${result.botUsername}`);
-          
-        } catch (error) {
-          errors.push({
-            token: maskToken(token),
-            token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
-            status: 'error',
-            message: error.message,
-            error_code: error.code
-          });
-          console.error(`❌ Başlatma hatası (${maskToken(token)}):`, error.message);
         }
-      })
-    );
 
-    // Sonuçları döndür
+        // Cleanup existing bot
+        if (activeBots.has(token)) {
+          cleanupBot(token);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        // Start bot
+        const result = await startBot(token, channelId, isSelf);
+        results.push({
+          token: maskToken(token),
+          token_type: isSelf ? 'self_token' : 'bot_token',
+          status: 'success',
+          bot_username: result.botUsername,
+          user_id: result.userId,
+          connected: true
+        });
+        
+        console.log(`✅ ${isSelf ? 'SELF TOKEN' : 'BOT'} başlatıldı: ${result.botUsername}`);
+        
+      } catch (error) {
+        errors.push({
+          token: maskToken(token),
+          token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
+          status: 'error',
+          message: error.message
+        });
+        console.error(`❌ Hata (${maskToken(token)}):`, error.message);
+      }
+      
+      // Rate limit protection
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Response
     res.status(200).json({
       status: 'completed',
       total_tokens: tokens.length,
@@ -180,7 +210,6 @@ export default async function handler(req, res) {
       results: results,
       errors: errors,
       message: `${results.length} token başarıyla aktif edildi!`,
-      check_interval: `${CHECK_INTERVAL/1000} saniye`,
       timestamp: new Date().toISOString()
     });
 
@@ -194,16 +223,16 @@ export default async function handler(req, res) {
   }
 }
 
-// SELF TOKEN ÖZEL BAŞLATMA FONKSİYONU
-async function startBot(token, channelId) {
+// SELF TOKEN İÇİN ÖZEL CLIENT
+async function startBot(token, channelId, isSelfToken = false) {
   return new Promise(async (resolve, reject) => {
-    const isSelf = isSelfToken(token);
     let client;
-    let checkInterval;
 
     try {
-      // SELF TOKEN İÇİN ÖZEL AYARLAR
-      if (isSelf) {
+      if (isSelfToken) {
+        // 🔥 SELF TOKEN İÇİN ÖZEL AYARLAR
+        console.log(`🔑 Self token ile client oluşturuluyor: ${maskToken(token)}`);
+        
         client = new Client({
           intents: [
             GatewayIntentBits.Guilds,
@@ -215,25 +244,25 @@ async function startBot(token, channelId) {
           // Self token için kritik ayarlar
           rest: {
             timeout: 30000,
-            retries: 5,
-            offset: 50
+            retries: 3,
           },
           ws: {
             large_threshold: 100,
-            compress: true,
+            compress: false,
             properties: {
-              $os: 'linux',
-              $browser: 'discord',
-              $device: 'discord'
+              $os: 'windows',
+              $browser: 'chrome',
+              $device: 'desktop'
             }
           },
-          // User agent ayarı
-          http: {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
-            }
-          }
+          // User token için özel auth
+          makeCache: false,
+          partials: []
         });
+
+        // SELF TOKEN AUTH FIX
+        client.rest.setToken(token);
+        
       } else {
         // BOT TOKEN STANDART AYARLAR
         client = new Client({
@@ -244,12 +273,11 @@ async function startBot(token, channelId) {
         });
       }
 
-      // BAĞLANTI EVENTLERİ
+      // READY EVENT
       client.once('ready', async (c) => {
-        console.log(`✅ ${isSelf ? 'SELF TOKEN' : 'BOT'} HAZIR: ${c.user.tag} (${c.user.id})`);
+        console.log(`✅ ${isSelfToken ? 'SELF TOKEN' : 'BOT'} HAZIR: ${c.user.tag} (${c.user.id})`);
         
         try {
-          // Ses kanalına bağlan
           const voiceConnection = await connectToVoice(client, channelId);
           
           if (!voiceConnection) {
@@ -258,11 +286,11 @@ async function startBot(token, channelId) {
           }
 
           // Kontrol döngüsü
-          checkInterval = setInterval(async () => {
+          const checkInterval = setInterval(async () => {
             await checkAndReconnect(client, channelId, token);
           }, CHECK_INTERVAL);
 
-          // Aktif botlara kaydet
+          // Kaydet
           activeBots.set(token, {
             client: client,
             voiceConnection: voiceConnection,
@@ -271,13 +299,12 @@ async function startBot(token, channelId) {
             connectedAt: new Date(),
             botUsername: c.user.tag,
             userId: c.user.id,
-            isSelfToken: isSelf
+            isSelfToken: isSelfToken
           });
 
           resolve({
             botUsername: c.user.tag,
             userId: c.user.id,
-            sessionId: client.ws.sessionId || 'unknown',
             connected: true
           });
 
@@ -286,58 +313,49 @@ async function startBot(token, channelId) {
         }
       });
 
-      // SELF TOKEN ÖZEL HATA YÖNETİMİ
+      // ERROR HANDLING
       client.on('error', (error) => {
-        console.error(`❌ ${isSelf ? 'Self Token' : 'Bot'} hatası (${maskToken(token)}):`, {
-          message: error.message,
-          code: error.code,
-          stack: error.stack
-        });
-
-        // Self token için özel hata handling
-        if (isSelf) {
-          if (error.code === 'TOKEN_INVALID') {
-            console.log(`🔑 Token invalid - yeniden deneniyor: ${maskToken(token)}`);
-            setTimeout(() => {
-              if (client && !client.destroyed) {
-                client.destroy().catch(() => {});
-                startBot(token, channelId).catch(reject);
-              }
-            }, 5000);
-          }
-        }
-      });
-
-      // RATE LIMIT HANDLING
-      client.on('rateLimit', (info) => {
-        console.log(`⏳ Rate limit: ${maskToken(token)} - ${info.timeout}ms bekle`);
-      });
-
-      // DEBUG EVENTLERİ
-      client.on('debug', (info) => {
-        if (info.includes('VOICE_STATE_UPDATE') || info.includes('SESSIONS_REPLACE')) {
-          console.log(`🔍 ${isSelf ? 'Self' : 'Bot'} Debug:`, info.substring(0, 100));
-        }
-      });
-
-      // SELF TOKEN İÇİN LOGIN
-      if (isSelf) {
-        console.log(`🔑 Self token ile giriş yapılıyor: ${maskToken(token)}`);
+        console.error(`❌ ${isSelfToken ? 'Self Token' : 'Bot'} hatası:`, error.message);
         
-        // User token ile giriş (bot değil)
-        await client.login(token).catch(async (error) => {
-          console.error(`❌ Self token login hatası:`, error.message);
-          
-          // Token invalid hatası için özel mesaj
+        if (isSelfToken) {
+          // Self token özel hata yönetimi
           if (error.message.includes('token') || error.code === 'TOKEN_INVALID') {
-            reject(new Error(`Self token geçersiz: Token formatı veya yetkileri kontrol edin`));
-          } else {
-            reject(new Error(`Self token hatası: ${error.message}`));
+            console.log(`🔄 Self token yeniden deneniyor: ${maskToken(token)}`);
+            setTimeout(() => {
+              cleanupBot(token);
+              startBot(token, channelId, isSelfToken).catch(reject);
+            }, 10000);
           }
-        });
+        }
+      });
+
+      // DEBUG
+      client.on('debug', (info) => {
+        if (info.includes('Authentication') || info.includes('token')) {
+          console.log(`🔍 ${isSelfToken ? 'Self' : 'Bot'} Debug:`, info);
+        }
+      });
+
+      // SELF TOKEN LOGIN FIX
+      if (isSelfToken) {
+        console.log(`🚀 Self token login başlatılıyor...`);
+        
+        // Discord.js user token login workaround
+        try {
+          // Önce WebSocket bağlantısını manual başlat
+          await client.login(token).catch(async (loginError) => {
+            console.log(`⚠️  Standart login başarısız, alternatif yöntem deneniyor...`);
+            
+            // Alternatif auth yöntemi
+            await alternativeSelfTokenLogin(client, token);
+          });
+        } catch (finalError) {
+          console.error(`💥 Self token login hatası:`, finalError.message);
+          reject(new Error(`Self token authentication failed: ${finalError.message}`));
+        }
       } else {
-        // BOT TOKEN İLE GİRİŞ
-        await client.login(token).catch(reject);
+        // Bot token normal login
+        await client.login(token);
       }
 
     } catch (error) {
@@ -346,7 +364,80 @@ async function startBot(token, channelId) {
   });
 }
 
-// SES BAĞLANTISI (Self Token Optimizasyonu)
+// ALTERNATİF SELF TOKEN LOGIN
+async function alternativeSelfTokenLogin(client, token) {
+  return new Promise((resolve, reject) => {
+    console.log(`🔄 Alternatif self token login deneniyor...`);
+    
+    // Manual WebSocket connection
+    const WebSocket = require('ws');
+    
+    // Discord Gateway URL'sini al
+    fetch('https://discord.com/api/v10/gateway')
+      .then(res => res.json())
+      .then(gateway => {
+        const ws = new WebSocket(`${gateway.url}?v=10&encoding=json`);
+        
+        ws.on('open', () => {
+          console.log('🔗 WebSocket bağlantısı açıldı');
+          
+          // Identify payload
+          const identify = {
+            op: 2,
+            d: {
+              token: token,
+              properties: {
+                $os: 'windows',
+                $browser: 'chrome',
+                $device: 'desktop'
+              },
+              compress: false,
+              large_threshold: 250,
+              presence: {
+                status: 'online',
+                since: 0,
+                activities: [],
+                afk: false
+              }
+            }
+          };
+          
+          ws.send(JSON.stringify(identify));
+        });
+        
+        ws.on('message', (data) => {
+          const payload = JSON.parse(data);
+          
+          if (payload.op === 10) { // Hello
+            console.log('👋 Hello received, heartbeats starting');
+          }
+          
+          if (payload.t === 'READY') {
+            console.log('✅ Self token READY event received');
+            ws.close();
+            resolve(true);
+          }
+          
+          if (payload.op === 9) { // Invalid session
+            reject(new Error('Invalid session - token may be invalid'));
+          }
+        });
+        
+        ws.on('error', (error) => {
+          reject(new Error(`WebSocket error: ${error.message}`));
+        });
+        
+        setTimeout(() => {
+          reject(new Error('Self token login timeout'));
+        }, 30000);
+      })
+      .catch(error => {
+        reject(new Error(`Gateway fetch error: ${error.message}`));
+      });
+  });
+}
+
+// SES BAĞLANTISI
 async function connectToVoice(client, channelId) {
   try {
     const channel = await client.channels.fetch(channelId);
@@ -359,18 +450,16 @@ async function connectToVoice(client, channelId) {
       throw new Error('Bu kanal bir ses kanalı değil');
     }
 
-    console.log(`🎵 Kanala bağlanılıyor: ${channel.name} (${channel.guild.name})`);
+    console.log(`🎵 Kanala bağlanılıyor: ${channel.name}`);
     
     const voiceConnection = joinVoiceChannel({
       channelId: channel.id,
       guildId: channel.guild.id,
       adapterCreator: channel.guild.voiceAdapterCreator,
       selfDeaf: true,
-      selfMute: true,
-      debug: false
+      selfMute: true
     });
 
-    // Bağlantı eventleri
     voiceConnection.on(VoiceConnectionStatus.Disconnected, async () => {
       console.log('🔌 Ses bağlantısı kesildi, yeniden bağlanılıyor...');
       try {
@@ -380,10 +469,6 @@ async function connectToVoice(client, channelId) {
       } catch (error) {
         console.error('Yeniden bağlanma hatası:', error);
       }
-    });
-
-    voiceConnection.on(VoiceConnectionStatus.Ready, () => {
-      console.log('✅ Ses bağlantısı hazır');
     });
 
     return voiceConnection;
@@ -399,10 +484,7 @@ async function checkAndReconnect(client, channelId, token) {
   try {
     const channel = await client.channels.fetch(channelId);
     
-    if (!channel || channel.type !== 2) {
-      console.log('❌ Kanal geçersiz');
-      return;
-    }
+    if (!channel || channel.type !== 2) return;
 
     const guild = channel.guild;
     const voiceStates = guild.voiceStates.cache;
@@ -414,9 +496,7 @@ async function checkAndReconnect(client, channelId, token) {
       console.log('🚨 SESTE DEĞİL! YENİDEN BAĞLANIYOR...');
       
       const oldConnection = getVoiceConnection(guild.id);
-      if (oldConnection) {
-        oldConnection.destroy();
-      }
+      if (oldConnection) oldConnection.destroy();
       
       await new Promise(resolve => setTimeout(resolve, 2000));
       await connectToVoice(client, channelId);
