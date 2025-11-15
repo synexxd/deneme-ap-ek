@@ -1,4 +1,4 @@
-// api/discord.js - makeCache Fix
+// api/discord.js - Ready Event Fix
 import { Client, GatewayIntentBits, Options } from 'discord.js';
 import { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 
@@ -50,24 +50,22 @@ function isSelfToken(token) {
   return parts.length !== 3;
 }
 
-// Hızlı Client oluşturma - makeCache FIX
+// Hızlı Client oluşturma
 function createFastClient(token) {
   const isSelf = isSelfToken(token);
   
-  // Discord.js v14 için doğru cache ayarları
-  const clientOptions = {
+  return new Client({
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildVoiceStates,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent
     ],
-    // makeCache FIX - Options.CacheWithLimits kullan
+    // Cache optimizasyonu
     makeCache: Options.cacheWithLimits({
       ...Options.defaultMakeCacheSettings,
-      // Daha az memory kullanımı için cache limitleri
       MessageManager: {
-        maxSize: 10, // Sadece 10 message cache'le
+        maxSize: 10,
         keepOverLimit: item => item.pinned
       },
       ThreadManager: {
@@ -84,12 +82,10 @@ function createFastClient(token) {
       large_threshold: 50,
       compress: true,
     }
-  };
-
-  return new Client(clientOptions);
+  });
 }
 
-// Hızlı bot başlatma
+// Hızlı bot başlatma - READY EVENT FIX
 async function startBotFast(token, channelId) {
   return new Promise(async (resolve, reject) => {
     const isSelf = isSelfToken(token);
@@ -100,7 +96,7 @@ async function startBotFast(token, channelId) {
       
       client = createFastClient(token);
 
-      // Ready event
+      // READY EVENT FIX - clientReady kullan
       client.once('ready', async (c) => {
         console.log(`✅ ${isSelf ? 'SELF' : 'BOT'} HAZIR: ${c.user.tag}`);
         
@@ -145,6 +141,11 @@ async function startBotFast(token, channelId) {
         }
       });
 
+      // Alternatif olarak clientReady da kullanabiliriz
+      client.once('clientReady', async (c) => {
+        console.log(`✅ ${isSelf ? 'SELF' : 'BOT'} CLIENT READY: ${c.user.tag}`);
+      });
+
       // Error handling
       client.on('error', (error) => {
         console.error(`❌ ${isSelf ? 'Self' : 'Bot'} hatası:`, error.message);
@@ -155,11 +156,6 @@ async function startBotFast(token, channelId) {
         if (info.includes('Authenticated') || info.includes('VOICE_STATE_UPDATE')) {
           console.log(`🔍 ${maskToken(token)}: ${info.substring(0, 80)}`);
         }
-      });
-
-      // Rate limit handling
-      client.on('rateLimit', (info) => {
-        console.log(`⏳ ${maskToken(token)} rate limit: ${info.timeout}ms`);
       });
 
       // Hızlı login
@@ -258,21 +254,25 @@ async function checkAndReconnectFast(client, channelId, token) {
   }
 }
 
-// TÜM TOKENLARI AYNI ANDA BAŞLAT
+// TÜM TOKENLARI AYNI ANDA BAŞLAT - GÜNCELLENMİŞ
 async function startAllTokensParallel(tokens, channelId) {
   console.log(`🚀 TÜM TOKENLAR AYNI ANDA BAŞLATILIYOR: ${tokens.length} token`);
   
   const startTime = Date.now();
   
+  // Önce tüm mevcut botları temizle
+  tokens.forEach(token => {
+    if (activeBots.has(token)) {
+      cleanupBot(token);
+    }
+  });
+
+  // 2 saniye bekle temizlik için
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
   // Tüm token'ları aynı anda başlat
   const promises = tokens.map(async (token, index) => {
     try {
-      // Mevcut bot varsa temizle (hızlı)
-      if (activeBots.has(token)) {
-        cleanupBot(token);
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-
       console.log(`⚡ [${index + 1}/${tokens.length}] Başlatılıyor: ${maskToken(token)}`);
       
       const result = await startBotFast(token, channelId);
