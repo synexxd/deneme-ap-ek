@@ -74,7 +74,7 @@ function createClient(token) {
   return new Client(clientOptions);
 }
 
-// Bot başlatma - Promise ile
+// Bot başlatma - Geliştirilmiş
 async function startBot(token, channelId) {
   return new Promise(async (resolve, reject) => {
     const isSelf = isSelfToken(token);
@@ -141,6 +141,11 @@ async function startBot(token, channelId) {
         }
       });
 
+      // Rate limit handling
+      client.on('rateLimit', (info) => {
+        console.log(`⏳ Rate limit: ${maskToken(token)} - ${info.timeout}ms`);
+      });
+
       // Login
       await client.login(token);
 
@@ -169,7 +174,7 @@ async function connectToVoice(client, channelId) {
       throw new Error('Ses kanalı değil');
     }
 
-    console.log(`🎵 Bağlanılıyor: ${channel.name}`);
+    console.log(`🎵 ${client.user.tag} bağlanıyor: ${channel.name}`);
     
     const voiceConnection = joinVoiceChannel({
       channelId: channel.id,
@@ -180,20 +185,20 @@ async function connectToVoice(client, channelId) {
     });
 
     voiceConnection.on(VoiceConnectionStatus.Disconnected, () => {
-      console.log('🔌 Ses bağlantısı kesildi');
+      console.log(`🔌 ${client.user.tag} ses bağlantısı kesildi`);
       setTimeout(() => {
         reconnectVoice(client, channelId).catch(console.error);
       }, RECONNECT_DELAY);
     });
 
     voiceConnection.on(VoiceConnectionStatus.Ready, () => {
-      console.log('✅ Ses bağlantısı hazır');
+      console.log(`✅ ${client.user.tag} ses bağlantısı hazır`);
     });
 
     return voiceConnection;
     
   } catch (error) {
-    console.error('❌ Bağlantı hatası:', error.message);
+    console.error(`❌ ${client.user?.tag || 'Unknown'} bağlantı hatası:`, error.message);
     throw error;
   }
 }
@@ -228,7 +233,7 @@ async function checkAndReconnect(client, channelId, token) {
     const isInVoice = botVoiceState?.channelId === channelId;
     
     if (!isInVoice) {
-      console.log(`🚨 ${maskToken(token)} seste değil, yeniden bağlanılıyor...`);
+      console.log(`🚨 ${client.user.tag} seste değil, yeniden bağlanılıyor...`);
       await reconnectVoice(client, channelId);
     }
     
@@ -237,65 +242,58 @@ async function checkAndReconnect(client, channelId, token) {
   }
 }
 
-// Çoklu token işleme - PARALEL
-async function processMultipleTokens(tokens, channelId) {
+// Çoklu token işleme - SEQUENTIAL (Sıralı)
+async function processMultipleTokensSequentially(tokens, channelId) {
   const results = [];
   const errors = [];
 
-  // Tüm token'ları paralel başlat (Promise.allSettled ile)
-  const promises = tokens.map(async (token) => {
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    const isSelf = isSelfToken(token);
+    
     try {
+      console.log(`\n🔧 [${i + 1}/${tokens.length}] ${isSelf ? 'SELF TOKEN' : 'BOT'} işleniyor...`);
+      
       // Mevcut bot varsa temizle
       if (activeBots.has(token)) {
         cleanupBot(token);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      // Bot'u başlat
+      // Yeni bot başlat
       const result = await startBot(token, channelId);
       
-      return {
+      results.push({
         token: maskToken(token),
-        token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
+        token_type: isSelf ? 'self_token' : 'bot_token',
         status: 'success',
         bot_username: result.botUsername,
         user_id: result.userId,
         connected: true
-      };
-      
+      });
+
+      console.log(`✅ [${i + 1}/${tokens.length}] ${isSelf ? 'SELF TOKEN' : 'BOT'} başarılı: ${result.botUsername}`);
+
+      // Her bot arasında 3 saniye bekle (rate limit önlemi)
+      if (i < tokens.length - 1) {
+        console.log(`⏳ ${3 - (i % 3)} saniye sonra diğer token başlatılacak...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
     } catch (error) {
-      return {
+      errors.push({
         token: maskToken(token),
-        token_type: isSelfToken(token) ? 'self_token' : 'bot_token',
+        token_type: isSelf ? 'self_token' : 'bot_token',
         status: 'error',
         message: error.message
-      };
-    }
-  });
-
-  // Tüm promise'ları bekle
-  const settledResults = await Promise.allSettled(promises);
-  
-  // Sonuçları ayır
-  settledResults.forEach((result, index) => {
-    if (result.status === 'fulfilled') {
-      if (result.value.status === 'success') {
-        results.push(result.value);
-        console.log(`✅ Başarılı: ${result.value.bot_username}`);
-      } else {
-        errors.push(result.value);
-        console.log(`❌ Hata: ${result.value.message}`);
-      }
-    } else {
-      errors.push({
-        token: maskToken(tokens[index]),
-        token_type: isSelfToken(tokens[index]) ? 'self_token' : 'bot_token',
-        status: 'error',
-        message: result.reason?.message || 'Bilinmeyen hata'
       });
-      console.log(`💥 Promise hatası: ${result.reason}`);
+      
+      console.error(`❌ [${i + 1}/${tokens.length}] ${isSelf ? 'SELF TOKEN' : 'BOT'} hatası:`, error.message);
+      
+      // Hata olsa bile diğer token'ları denemeye devam et
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
-  });
+  }
 
   return { results, errors };
 }
@@ -318,11 +316,10 @@ export default async function handler(req, res) {
     let tokens = [];
     let channelId;
 
-    // REQUEST PARSING - ÇOKLU TOKEN DESTEĞİ
+    // REQUEST PARSING
     if (req.method === 'GET') {
       const { token, tokens: tokensParam, channel_id } = req.query;
       
-      // tokens parametresi varsa split et, yoksa token'ı kullan
       if (tokensParam) {
         tokens = Array.isArray(tokensParam) ? tokensParam : tokensParam.split(',');
       } else if (token) {
@@ -366,11 +363,11 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`🤖 ${tokens.length} TOKEN PARALEL BAŞLATILIYOR...`);
+    console.log(`🤖 ${tokens.length} TOKEN SIRALI BAŞLATILIYOR...`);
     console.log(`📊 Token Dağılımı: ${tokens.filter(t => isSelfToken(t)).length} Self, ${tokens.filter(t => !isSelfToken(t)).length} Bot`);
 
-    // ÇOKLU TOKEN İŞLEME
-    const { results, errors } = await processMultipleTokens(tokens, channelId);
+    // ÇOKLU TOKEN İŞLEME - SEQUENTIAL
+    const { results, errors } = await processMultipleTokensSequentially(tokens, channelId);
 
     // RESPONSE
     return res.status(200).json({
