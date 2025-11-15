@@ -4,19 +4,28 @@ export default async function handler(req, res) {
     let { site = 'discord' } = req.method === 'POST' ? req.body : req.query;
     
     const response = await fetch(`https://free.zirveexec.com/api_public.php?site=${site}`);
-    const data = await response.text();
+    const textData = await response.text();
     
-    // JSON parse etmeye çalış, değilse direkt döndür
+    // JSON'a çevir
+    let jsonData;
     try {
-      const jsonData = JSON.parse(data);
-      res.json(jsonData);
+      jsonData = JSON.parse(textData);
     } catch {
-      res.send(data);
+      // JSON değilse manuel çevir
+      jsonData = {
+        raw_data: textData,
+        site: site,
+        timestamp: new Date().toISOString(),
+        status: "success"
+      };
     }
+    
+    res.json(jsonData);
 
   } catch (error) {
     res.status(500).json({
-      error: error.message
+      error: error.message,
+      status: "error"
     });
   }
 }
