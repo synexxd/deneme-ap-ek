@@ -110,18 +110,7 @@
                             <span class="success-message" id="successDeprem">Kopyalandı!</span>
                         </div>
                     </div>
-                </div>
-                <div class="pagination">
-                    <button class="page-btn prev" onclick="changePage('prev')" disabled>←</button>
-                    <button class="page-btn page-1 active" onclick="changePage(1)">1</button>
-                    <button class="page-btn page-2" onclick="changePage(2)">2</button>
-                    <button class="page-btn next" onclick="changePage('next')">→</button>
-                </div>
-            </div>
 
-            <div class="page-content" id="page2" style="display:none">
-                <div class="page-header"><h2>API Servisleri</h2></div>
-                <div class="api-cards">
                     <div class="api-card">
                         <div class="api-header">
                             <div class="method-badge get">GET</div>
@@ -159,6 +148,57 @@
                         <div class="api-footer">
                             <button class="copy-btn" onclick="copyToClipboard('doviz')">Kodu Kopyala</button>
                             <span class="success-message" id="successDoviz">Kopyalandı!</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="pagination">
+                    <button class="page-btn prev" onclick="changePage('prev')" disabled>←</button>
+                    <button class="page-btn page-1 active" onclick="changePage(1)">1</button>
+                    <button class="page-btn page-2" onclick="changePage(2)">2</button>
+                    <button class="page-btn next" onclick="changePage('next')">→</button>
+                </div>
+            </div>
+
+            <div class="page-content" id="page2" style="display:none">
+                <div class="page-header"><h2>API Servisleri</h2></div>
+                <div class="api-cards">
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge get">GET</div>
+                            <div class="api-title">Population</div>
+                        </div>
+                        <div class="endpoint">/api/population</div>
+                        <div class="description">Dünya ülkelerinin nüfus bilgileri.</div>
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('population')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responsePopulation">{"status":"success","endpoint":"/api/population","method":"GET","total_countries":50,"total_population":4500000000,"countries":[{"name":{"common":"Turkey","official":"Republic of Turkey"},"population":84339067}],"timestamp":"2024-01-15T14:30:00.000Z"}</div>
+                        </div>
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('population')">Kodu Kopyala</button>
+                            <span class="success-message" id="successPopulation">Kopyalandı!</span>
+                        </div>
+                    </div>
+
+                    <div class="api-card">
+                        <div class="api-header">
+                            <div class="method-badge get">GET</div>
+                            <div class="api-title">IP Info</div>
+                        </div>
+                        <div class="endpoint">/api/ipinfo</div>
+                        <div class="description">IP adresi konum, ISP ve coğrafi bilgileri.</div>
+                        <div class="response-section">
+                            <div class="response-header" onclick="toggleResponse('ipinfo')">
+                                <div class="section-title">Dönüş:</div>
+                                <div class="toggle-icon">▼</div>
+                            </div>
+                            <div class="response-code" id="responseIpinfo">{"status":"success","endpoint":"/api/ipinfo","method":"GET","query_ip":"79.127.184.108","data":{"ip":"79.127.184.108","location":{"country":"Turkey","city":"Istanbul","lat":41.0082,"lon":28.9784},"isp":{"isp":"Turk Telekom","org":"Turk Telekom"}},"timestamp":"2024-01-15T14:30:00.000Z"}</div>
+                        </div>
+                        <div class="api-footer">
+                            <button class="copy-btn" onclick="copyToClipboard('ipinfo')">Kodu Kopyala</button>
+                            <span class="success-message" id="successIpinfo">Kopyalandı!</span>
                         </div>
                     </div>
                 </div>
@@ -240,7 +280,9 @@
                 anime: `{"endpoint":"/api/anime","images":[{"imageUrl":"https://i.waifu.pics/..."}]}`,
                 deprem: `{"status":"success","endpoint":"/api/deprem","total":3,"earthquakes":[{"date":"15.01.2024 14:30:00","location":"MARMARA DENIZI - ISTANBUL","magnitude":4.5,"depth":8.2}]}`,
                 weather: `{"status":"success","city":"Istanbul","current":{"temperature":18,"description":"Parçalı bulutlu"},"forecast":[{"date":"2024-01-16","min_temp":12,"max_temp":19}]}`,
-                doviz: `{"status":"success","currencies":{"USD":{"buying":28.45,"selling":28.65}},"precious_metals":{"gold":{"buying":1850.5,"selling":1860.2}}}`
+                doviz: `{"status":"success","currencies":{"USD":{"buying":28.45,"selling":28.65}},"precious_metals":{"gold":{"buying":1850.5,"selling":1860.2}}}`,
+                population: `{"status":"success","endpoint":"/api/population","method":"GET","total_countries":50,"total_population":4500000000,"countries":[{"name":{"common":"Turkey","official":"Republic of Turkey"},"population":84339067}],"timestamp":"2024-01-15T14:30:00.000Z"}`,
+                ipinfo: `{"status":"success","endpoint":"/api/ipinfo","method":"GET","query_ip":"79.127.184.108","data":{"ip":"79.127.184.108","location":{"country":"Turkey","city":"Istanbul","lat":41.0082,"lon":28.9784},"isp":{"isp":"Turk Telekom","org":"Turk Telekom"}},"timestamp":"2024-01-15T14:30:00.000Z"}`
             };
             
             navigator.clipboard.writeText(responseCodes[type]).then(() => {
