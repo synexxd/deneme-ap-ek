@@ -25,6 +25,10 @@
                 <h1 class="hero-title">SynexAPI</h1>
                 <p class="hero-subtitle">SynexAPI'ye Hoşgeldin</p>
                 <p class="hero-description">Geliştiriciler için tasarlanmış, kullanımı kolay API sunuyorum.</p>
+                <div class="ip-display">
+                    <strong>IP Adresiniz:</strong> 
+                    <span id="userIp">Yükleniyor...</span>
+                </div>
             </div>
             <div class="hero-graphics"></div>
         </section>
@@ -106,7 +110,18 @@
                             <span class="success-message" id="successDeprem">Kopyalandı!</span>
                         </div>
                     </div>
+                </div>
+                <div class="pagination">
+                    <button class="page-btn prev" onclick="changePage('prev')" disabled>←</button>
+                    <button class="page-btn page-1 active" onclick="changePage(1)">1</button>
+                    <button class="page-btn page-2" onclick="changePage(2)">2</button>
+                    <button class="page-btn next" onclick="changePage('next')">→</button>
+                </div>
+            </div>
 
+            <div class="page-content" id="page2" style="display:none">
+                <div class="page-header"><h2>API Servisleri</h2></div>
+                <div class="api-cards">
                     <div class="api-card">
                         <div class="api-header">
                             <div class="method-badge get">GET</div>
@@ -148,57 +163,6 @@
                     </div>
                 </div>
                 <div class="pagination">
-                    <button class="page-btn prev" onclick="changePage('prev')" disabled>←</button>
-                    <button class="page-btn page-1 active" onclick="changePage(1)">1</button>
-                    <button class="page-btn page-2" onclick="changePage(2)">2</button>
-                    <button class="page-btn next" onclick="changePage('next')">→</button>
-                </div>
-            </div>
-
-            <div class="page-content" id="page2" style="display:none">
-                <div class="page-header"><h2>API Servisleri</h2></div>
-                <div class="api-cards">
-                    <div class="api-card">
-                        <div class="api-header">
-                            <div class="method-badge get">GET</div>
-                            <div class="api-title">Population</div>
-                        </div>
-                        <div class="endpoint">/api/population</div>
-                        <div class="description">Dünya ülkelerinin nüfus bilgileri.</div>
-                        <div class="response-section">
-                            <div class="response-header" onclick="toggleResponse('population')">
-                                <div class="section-title">Dönüş:</div>
-                                <div class="toggle-icon">▼</div>
-                            </div>
-                            <div class="response-code" id="responsePopulation">{"status":"success","endpoint":"/api/population","method":"GET","total_countries":50,"total_population":4500000000,"countries":[{"name":{"common":"Turkey","official":"Republic of Turkey"},"population":84339067}],"timestamp":"2024-01-15T14:30:00.000Z"}</div>
-                        </div>
-                        <div class="api-footer">
-                            <button class="copy-btn" onclick="copyToClipboard('population')">Kodu Kopyala</button>
-                            <span class="success-message" id="successPopulation">Kopyalandı!</span>
-                        </div>
-                    </div>
-
-                    <div class="api-card">
-                        <div class="api-header">
-                            <div class="method-badge get">GET</div>
-                            <div class="api-title">IP Info</div>
-                        </div>
-                        <div class="endpoint">/api/ipinfo</div>
-                        <div class="description">IP adresi konum, ISP ve coğrafi bilgileri.</div>
-                        <div class="response-section">
-                            <div class="response-header" onclick="toggleResponse('ipinfo')">
-                                <div class="section-title">Dönüş:</div>
-                                <div class="toggle-icon">▼</div>
-                            </div>
-                            <div class="response-code" id="responseIpinfo">{"status":"success","endpoint":"/api/ipinfo","method":"GET","query_ip":"79.127.184.108","data":{"ip":"79.127.184.108","location":{"country":"Turkey","city":"Istanbul","lat":41.0082,"lon":28.9784},"isp":{"isp":"Turk Telekom","org":"Turk Telekom"}},"timestamp":"2024-01-15T14:30:00.000Z"}</div>
-                        </div>
-                        <div class="api-footer">
-                            <button class="copy-btn" onclick="copyToClipboard('ipinfo')">Kodu Kopyala</button>
-                            <span class="success-message" id="successIpinfo">Kopyalandı!</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="pagination">
                     <button class="page-btn prev" onclick="changePage('prev')">←</button>
                     <button class="page-btn page-1" onclick="changePage(1)">1</button>
                     <button class="page-btn page-2 active" onclick="changePage(2)">2</button>
@@ -209,8 +173,18 @@
     </div>
 
     <script>
+        // IP adresini çek
+        async function showUserIP() {
+            try {
+                const response = await fetch('https://api.ipify.org/?format=json');
+                const data = await response.json();
+                document.getElementById('userIp').textContent = data.ip;
+            } catch (error) {
+                document.getElementById('userIp').textContent = 'IP alınamadı';
+            }
+        }
+
         let currentPage = 1;
-        let currentSection = 'hero';
 
         function toggleMenu() {
             document.getElementById('navMenu').classList.toggle('active');
@@ -222,7 +196,7 @@
             document.getElementById('apiSection').style.display = 'none';
             document.getElementById('navMenu').classList.remove('active');
             document.getElementById(sectionId).style.display = 'block';
-            currentSection = sectionId;
+            
             if (sectionId === 'apiSection') {
                 document.getElementById('page1').style.display = 'block';
                 document.getElementById('page2').style.display = 'none';
@@ -250,7 +224,7 @@
         }
 
         function toggleResponse(type) {
-            const responseElement = document.getElementById(`response${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            const responseElement = document.getElementById('response' + type.charAt(0).toUpperCase() + type.slice(1));
             const toggleIcon = responseElement.parentElement.querySelector('.toggle-icon');
             if (responseElement.style.display === 'none' || !responseElement.style.display) {
                 responseElement.style.display = 'block';
@@ -266,29 +240,20 @@
                 anime: `{"endpoint":"/api/anime","images":[{"imageUrl":"https://i.waifu.pics/..."}]}`,
                 deprem: `{"status":"success","endpoint":"/api/deprem","total":3,"earthquakes":[{"date":"15.01.2024 14:30:00","location":"MARMARA DENIZI - ISTANBUL","magnitude":4.5,"depth":8.2}]}`,
                 weather: `{"status":"success","city":"Istanbul","current":{"temperature":18,"description":"Parçalı bulutlu"},"forecast":[{"date":"2024-01-16","min_temp":12,"max_temp":19}]}`,
-                doviz: `{"status":"success","currencies":{"USD":{"buying":28.45,"selling":28.65}},"precious_metals":{"gold":{"buying":1850.5,"selling":1860.2}}}`,
-                population: `{"status":"success","endpoint":"/api/population","method":"GET","total_countries":50,"total_population":4500000000,"countries":[{"name":{"common":"Turkey","official":"Republic of Turkey"},"population":84339067}],"timestamp":"2024-01-15T14:30:00.000Z"}`,
-                ipinfo: `{"status":"success","endpoint":"/api/ipinfo","method":"GET","query_ip":"79.127.184.108","data":{"ip":"79.127.184.108","location":{"country":"Turkey","city":"Istanbul","lat":41.0082,"lon":28.9784},"isp":{"isp":"Turk Telekom","org":"Turk Telekom"}},"timestamp":"2024-01-15T14:30:00.000Z"}`
+                doviz: `{"status":"success","currencies":{"USD":{"buying":28.45,"selling":28.65}},"precious_metals":{"gold":{"buying":1850.5,"selling":1860.2}}}`
             };
             
             navigator.clipboard.writeText(responseCodes[type]).then(() => {
-                const successMessage = document.getElementById(`success${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                const successMessage = document.getElementById('success' + type.charAt(0).toUpperCase() + type.slice(1));
                 successMessage.style.display = 'inline';
                 setTimeout(() => successMessage.style.display = 'none', 2000);
             });
         }
 
+        // Sayfa yüklendiğinde IP'yi göster
         document.addEventListener('DOMContentLoaded', function() {
+            showUserIP();
             document.querySelectorAll('.response-code').forEach(element => element.style.display = 'none');
-            document.querySelectorAll('.toggle-icon').forEach(icon => icon.textContent = '▼');
-        });
-
-        document.addEventListener('click', function(event) {
-            const menu = document.getElementById('navMenu');
-            const toggle = document.querySelector('.menu-toggle');
-            if (!menu.contains(event.target) && !toggle.contains(event.target)) {
-                menu.classList.remove('active');
-            }
         });
     </script>
 </body>
